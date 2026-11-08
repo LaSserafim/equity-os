@@ -1,0 +1,70 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --bg-canvas: #FFFDF5;
+    --border-black: #000000;
+  }
+
+  body {
+    background-color: var(--bg-canvas);
+    color: #000000;
+    font-feature-settings: "rlig" 1, "calt" 1;
+    -webkit-font-smoothing: antialiased;
+    background-image: radial-gradient(#000000 0.75px, transparent 0.75px);
+    background-size: 24px 24px;
+    background-color: #FFFDF8;
+  }
+
+  /* Neo-brutalist stark custom scrollbar */
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: #FFFBEB;
+    border-left: 2px solid #000000;
+    border-top: 2px solid #000000;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #000000;
+    border: 2px solid #FFE81D;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #FF5E7E;
+  }
+}
+
+@layer utilities {
+  .brutal-border {
+    border: 3px solid #000000;
+  }
+  .brutal-border-sm {
+    border: 2px solid #000000;
+  }
+  .brutal-shadow-sm {
+    box-shadow: 2px 2px 0px 0px #000000;
+  }
+  .brutal-shadow {
+    box-shadow: 4px 4px 0px 0px #000000;
+  }
+  .brutal-shadow-lg {
+    box-shadow: 6px 6px 0px 0px #000000;
+  }
+  .brutal-shadow-xl {
+    box-shadow: 8px 8px 0px 0px #000000;
+  }
+  .brutal-press {
+    transition: transform 0.1s ease, box-shadow 0.1s ease;
+  }
+  .brutal-press:hover {
+    transform: translate(-2px, -2px);
+    box-shadow: 6px 6px 0px 0px #000000;
+  }
+  .brutal-press:active {
+    transform: translate(2px, 2px);
+    box-shadow: 1px 1px 0px 0px #000000;
+  }
+}
