@@ -39,22 +39,22 @@ export default function FinancialAssistantPage() {
   const [mounted, setMounted] = useState(false);
   const [user, setUser] = useState<User | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
+  const [isPrivacyMode, setIsPrivacyMode] = useState(false);
 
   // Authentication & session management
   useEffect(() => {
     let isSubscribed = true;
+    const savedPrivacy = typeof window !== 'undefined' ? localStorage.getItem('neobrutal_privacy_mode') : null;
+    if (savedPrivacy) setIsPrivacyMode(savedPrivacy === 'true');
 
     async function initAuth() {
       if (!isSupabaseConfigured) {
-        // Fallback for unconfigured preview environments: load local data directly
-        if (isSubscribed) {
-          setBuckets(FinanceStorage.getBuckets());
-          setTransactions(FinanceStorage.getTransactions());
-          setScenarios(FinanceStorage.getScenarios());
-          setProfile(FinanceStorage.getProfile());
-          setAuthLoading(false);
-          setMounted(true);
-        }
+        setBuckets(FinanceStorage.getBuckets());
+        setTransactions(FinanceStorage.getTransactions());
+        setScenarios(FinanceStorage.getScenarios());
+        setProfile(FinanceStorage.getProfile());
+        setAuthLoading(false);
+        setMounted(true);
         return;
       }
 
@@ -193,6 +193,17 @@ export default function FinancialAssistantPage() {
     const updated = FinanceStorage.updateProfile({ base_currency: newCurrency }, user?.id);
     setProfile(updated);
   };
+
+  const handleTogglePrivacy = () => {
+    setIsPrivacyMode((prev) => {
+      const next = !prev;
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('neobrutal_privacy_mode', String(next));
+      }
+      return next;
+    });
+  };
+
   // Export / Import / Reset
   const handleExportData = () => {
     const jsonStr = FinanceStorage.exportFullDataset();
@@ -317,6 +328,8 @@ export default function FinancialAssistantPage() {
         setActiveTab={setActiveTab}
         currency={activeCurrency}
         onCurrencyChange={handleCurrencyChange}
+        isPrivacyMode={isPrivacyMode}
+        onTogglePrivacy={handleTogglePrivacy}
         onExportData={handleExportData}
         onImportData={handleImportData}
         onResetData={handleResetData}
@@ -366,7 +379,7 @@ export default function FinancialAssistantPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <BrutalCard title="Total Equity" badge={buckets.length > 0 ? 'Live Net Worth' : 'No Data'} badgeColor={buckets.length > 0 ? 'yellow' : 'orange'} headerColor="bg-[#FFFBEB]">
                 <div className="text-2xl font-mono font-black text-black">
-                  {buckets.length > 0 ? formatCurrency(totalNetWorth, activeCurrency) : (activeCurrency === 'IDR' ? 'Rp 0' : '$0.00')}
+                  {buckets.length > 0 ? formatCurrency(totalNetWorth, activeCurrency, isPrivacyMode) : (activeCurrency === 'IDR' ? 'Rp 0' : '$0.00')}
                 </div>
                 <div className="text-[11px] font-mono text-gray-600 mt-1">
                   {buckets.length === 0 ? 'No vaults configured' : `Across ${buckets.length} allocated vaults`}
@@ -375,7 +388,7 @@ export default function FinancialAssistantPage() {
 
               <BrutalCard title="Liquid Cash" badge={liquidReserves > 0 ? 'Available' : 'Insufficient Data'} badgeColor={liquidReserves > 0 ? 'green' : 'orange'} headerColor="bg-[#DCFCE7]">
                 <div className="text-2xl font-mono font-black text-black">
-                  {formatCurrency(liquidReserves, activeCurrency)}
+                  {formatCurrency(liquidReserves, activeCurrency, isPrivacyMode)}
                 </div>
                 <div className="text-[11px] font-mono text-gray-600 mt-1">
                   {totalNetWorth > 0 ? `${((liquidReserves / totalNetWorth) * 100).toFixed(1)}% of total equity` : 'No liquid vault balance'}
@@ -384,7 +397,7 @@ export default function FinancialAssistantPage() {
 
               <BrutalCard title="30-Day Cash Inflow" badge={last30dInflow > 0 ? 'Revenue' : 'No Inflow'} badgeColor={last30dInflow > 0 ? 'blue' : 'yellow'} headerColor="bg-[#DBEAFE]">
                 <div className="text-2xl font-mono font-black text-[#059669]">
-                  {last30dInflow > 0 ? `+${formatCurrency(last30dInflow, activeCurrency)}` : (activeCurrency === 'IDR' ? 'Rp 0' : '$0.00')}
+                  {last30dInflow > 0 ? `+${formatCurrency(last30dInflow, activeCurrency, isPrivacyMode)}` : (activeCurrency === 'IDR' ? 'Rp 0' : '$0.00')}
                 </div>
                 <div className="text-[11px] font-mono text-gray-600 mt-1">
                   {last30dTx.filter((t) => t.type === 'income').length} income records in last 30d
@@ -393,7 +406,7 @@ export default function FinancialAssistantPage() {
 
               <BrutalCard title="30-Day Burn Rate" badge={last30dOutflow > 0 ? 'Outflow' : 'No Outflow'} badgeColor={last30dOutflow > 0 ? 'pink' : 'yellow'} headerColor="bg-[#FCE7F3]">
                 <div className="text-2xl font-mono font-black text-[#DC2626]">
-                  {last30dOutflow > 0 ? `-${formatCurrency(last30dOutflow, activeCurrency)}` : (activeCurrency === 'IDR' ? 'Rp 0' : '$0.00')}
+                  {last30dOutflow > 0 ? `-${formatCurrency(last30dOutflow, activeCurrency, isPrivacyMode)}` : (activeCurrency === 'IDR' ? 'Rp 0' : '$0.00')}
                 </div>
                 <div className="text-[11px] font-mono text-gray-600 mt-1">
                   {last30dInflow > 0 ? `Savings Rate: ${formatPercent(savingsRate)}` : 'No burn telemetry recorded'}
@@ -407,6 +420,7 @@ export default function FinancialAssistantPage() {
               transactions={transactions}
               profile={profile}
               currency={activeCurrency}
+              isPrivacyMode={isPrivacyMode}
             />
 
             {/* Two-Column: Quick Buckets Mini-Grid + Recent Transactions */}
@@ -455,7 +469,7 @@ export default function FinancialAssistantPage() {
                             </div>
                           </div>
                           <div className="text-right">
-                            <div className="font-black text-xs text-black">{formatCurrency(b.current_balance, activeCurrency)}</div>
+                            <div className="font-black text-xs text-black">{formatCurrency(b.current_balance, activeCurrency, isPrivacyMode)}</div>
                             <div className="text-[10px] text-gray-600">{pct.toFixed(1)}%</div>
                           </div>
                         </div>
@@ -515,7 +529,7 @@ export default function FinancialAssistantPage() {
                           </div>
 
                           <div className={`font-black text-sm ${isIncome ? 'text-[#059669]' : 'text-[#DC2626]'}`}>
-                            {isIncome ? `+${formatCurrency(tx.amount, tx.currency || activeCurrency)}` : `-${formatCurrency(tx.amount, tx.currency || activeCurrency)}`}
+                            {isIncome ? `+${formatCurrency(tx.amount, tx.currency || activeCurrency, isPrivacyMode)}` : `-${formatCurrency(tx.amount, tx.currency || activeCurrency, isPrivacyMode)}`}
                           </div>
                         </div>
                       );
@@ -536,6 +550,7 @@ export default function FinancialAssistantPage() {
               onDeleteBucket={handleDeleteBucket}
               onTransferCapital={handleTransferCapital}
               currency={activeCurrency}
+              isPrivacyMode={isPrivacyMode}
             />
           </div>
         )}
@@ -543,7 +558,7 @@ export default function FinancialAssistantPage() {
         {/* VIEW 3: TIME-SERIES ANALYTICS */}
         {activeTab === 'analytics' && (
           <div className="animate-in fade-in duration-150">
-            <AnalyticsSection transactions={transactions} currency={activeCurrency} />
+            <AnalyticsSection transactions={transactions} currency={activeCurrency} isPrivacyMode={isPrivacyMode} />
           </div>
         )}
 
@@ -556,6 +571,7 @@ export default function FinancialAssistantPage() {
               onSaveScenario={handleSaveScenario}
               onDeleteScenario={handleDeleteScenario}
               currency={activeCurrency}
+              isPrivacyMode={isPrivacyMode}
             />
           </div>
         )}
@@ -569,6 +585,7 @@ export default function FinancialAssistantPage() {
               onSaveTransaction={handleSaveTransaction}
               onDeleteTransaction={handleDeleteTransaction}
               currency={activeCurrency}
+              isPrivacyMode={isPrivacyMode}
             />
           </div>
         )}

@@ -10,12 +10,14 @@ interface SurvivalRunwayGaugeProps {
   transactions: Transaction[];
   profile: UserProfile;
   currency?: CurrencyCode;
+  isPrivacyMode?: boolean;
 }
 export function SurvivalRunwayGauge({
   buckets,
   transactions,
   profile,
   currency = 'IDR',
+  isPrivacyMode = false,
 }: SurvivalRunwayGaugeProps) {
   // 1. Calculate liquid reserves
   const liquidReserves = buckets
@@ -65,10 +67,10 @@ export function SurvivalRunwayGauge({
           </div>
           <div className="flex items-center gap-2 shrink-0">
             <div className="text-[11px] font-bold bg-[#FFFBEB] border border-black px-2 py-1">
-              Liquid: {formatCurrency(liquidReserves, currency)}
+              Liquid: {formatCurrency(liquidReserves, currency, isPrivacyMode)}
             </div>
             <div className="text-[11px] font-bold bg-[#FFFBEB] border border-black px-2 py-1">
-              Burn: {formatCurrency(totalExpense90d, currency)}
+              Burn: {formatCurrency(totalExpense90d, currency, isPrivacyMode)}
             </div>
           </div>
         </div>
@@ -190,8 +192,8 @@ export function SurvivalRunwayGauge({
 
           <p className="text-xs text-gray-700 bg-yellow-50 p-2.5 border border-black/40">
             💡 <strong>Runway Assessment:</strong> {tierStatus.description} You possess{' '}
-            <strong>{formatCurrency(liquidReserves, currency)}</strong> in liquid reserves against a baseline monthly burn of{' '}
-            <strong>{formatCurrency(averageMonthlyTotalBurn, currency)}</strong>.
+            <strong>{formatCurrency(liquidReserves, currency, isPrivacyMode)}</strong> in liquid reserves against a baseline monthly burn of{' '}
+            <strong>{formatCurrency(averageMonthlyTotalBurn, currency, isPrivacyMode)}</strong>.
           </p>
         </div>
       </BrutalCard>
@@ -209,10 +211,10 @@ export function SurvivalRunwayGauge({
               {targetMonths}-Month Safety Target
             </div>
             <div className="text-2xl font-black text-black">
-              {formatCurrency(targetEmergencyFund, currency)}
+              {formatCurrency(targetEmergencyFund, currency, isPrivacyMode)}
             </div>
             <div className="text-xs text-gray-600 mt-1">
-              Currently funded: <strong>{formatCurrency(currentEmergencyFund, currency)}</strong>
+              Currently funded: <strong>{formatCurrency(currentEmergencyFund, currency, isPrivacyMode)}</strong>
             </div>
           </div>
 

@@ -19,6 +19,7 @@ import { TrendingUp, PieChart as PieIcon, Calendar, ArrowUpRight, ArrowDownRight
 interface AnalyticsSectionProps {
   transactions: Transaction[];
   currency?: CurrencyCode;
+  isPrivacyMode?: boolean;
 }
 
 const TIMEFRAME_CONFIG: { label: string; value: TimeWindow; days: number }[] = [
@@ -51,9 +52,10 @@ interface CustomTooltipProps {
   }>;
   label?: string;
   currency?: CurrencyCode;
+  isPrivacyMode?: boolean;
 }
 
-function BrutalChartTooltip({ active, payload, label, currency = 'IDR' }: CustomTooltipProps) {
+function BrutalChartTooltip({ active, payload, label, currency = 'IDR', isPrivacyMode = false }: CustomTooltipProps) {
   if (!active || !payload || !payload.length) return null;
 
   return (
@@ -68,7 +70,7 @@ function BrutalChartTooltip({ active, payload, label, currency = 'IDR' }: Custom
               <span className="w-2 h-2 border border-black inline-block" style={{ backgroundColor: item.color }} />
               {item.name}:
             </span>
-            <span className="font-black text-black">{formatCurrency(item.value, currency)}</span>
+            <span className="font-black text-black">{formatCurrency(item.value, currency, isPrivacyMode)}</span>
           </div>
         ))}
       </div>
@@ -76,7 +78,7 @@ function BrutalChartTooltip({ active, payload, label, currency = 'IDR' }: Custom
   );
 }
 
-export function AnalyticsSection({ transactions, currency = 'IDR' }: AnalyticsSectionProps) {
+export function AnalyticsSection({ transactions, currency = 'IDR', isPrivacyMode = false }: AnalyticsSectionProps) {
   const [selectedWindow, setSelectedWindow] = useState<TimeWindow>('6M');
 
   // Filter transactions by selected timeframe window
@@ -258,7 +260,7 @@ export function AnalyticsSection({ transactions, currency = 'IDR' }: AnalyticsSe
         <div className="bg-[#46E88E] border-2 border-black p-3 shadow-[3px_3px_0px_0px_#000000] flex items-center justify-between">
           <div>
             <div className="text-[10px] font-mono font-black uppercase text-black">Period Inflow</div>
-            <div className="text-xl font-mono font-black text-black">+{formatCurrency(totalWindowIncome, currency)}</div>
+            <div className="text-xl font-mono font-black text-black">+{formatCurrency(totalWindowIncome, currency, isPrivacyMode)}</div>
           </div>
           <ArrowUpRight className="w-6 h-6 text-black" />
         </div>
@@ -266,7 +268,7 @@ export function AnalyticsSection({ transactions, currency = 'IDR' }: AnalyticsSe
         <div className="bg-[#FF5E7E] text-white border-2 border-black p-3 shadow-[3px_3px_0px_0px_#000000] flex items-center justify-between">
           <div>
             <div className="text-[10px] font-mono font-black uppercase text-white/90">Period Burn</div>
-            <div className="text-xl font-mono font-black text-white">-{formatCurrency(totalWindowExpense, currency)}</div>
+            <div className="text-xl font-mono font-black text-white">-{formatCurrency(totalWindowExpense, currency, isPrivacyMode)}</div>
           </div>
           <ArrowDownRight className="w-6 h-6 text-white" />
         </div>
@@ -306,10 +308,10 @@ export function AnalyticsSection({ transactions, currency = 'IDR' }: AnalyticsSe
                 <YAxis
                   stroke="#000000"
                   tick={{ fontFamily: 'monospace', fontSize: 11 }}
-                  tickFormatter={(val) => formatCompactCurrency(val, currency)}
+                  tickFormatter={(val) => formatCompactCurrency(val, currency, isPrivacyMode)}
                   tickLine={{ stroke: '#000000', strokeWidth: 1.5 }}
                 />
-                <Tooltip content={<BrutalChartTooltip currency={currency} />} />
+                <Tooltip content={<BrutalChartTooltip currency={currency} isPrivacyMode={isPrivacyMode} />} />
                 <Legend
                   wrapperStyle={{
                     fontFamily: 'monospace',
@@ -375,7 +377,7 @@ export function AnalyticsSection({ transactions, currency = 'IDR' }: AnalyticsSe
                       <span className="text-gray-500 text-[10px]">({cat.count}x)</span>
                     </div>
                     <div className="font-black text-black">
-                      {formatCurrency(cat.total, currency)} ({cat.percentage.toFixed(1)}%)
+                      {formatCurrency(cat.total, currency, isPrivacyMode)} ({cat.percentage.toFixed(1)}%)
                     </div>
                   </div>
                   {/* Progress Bar */}
@@ -433,17 +435,17 @@ export function AnalyticsSection({ transactions, currency = 'IDR' }: AnalyticsSe
               <div className="p-2 border border-black bg-[#FFFBEB]">
                 <div className="text-[10px] font-bold text-gray-600 uppercase">Needs (Target 50%)</div>
                 <div className="text-sm font-black mt-0.5">{priorityBreakdown.needsPct.toFixed(1)}%</div>
-                <div className="text-[10px] text-gray-500">{formatCurrency(priorityBreakdown.needsAmount, currency)}</div>
+                <div className="text-[10px] text-gray-500">{formatCurrency(priorityBreakdown.needsAmount, currency, isPrivacyMode)}</div>
               </div>
               <div className="p-2 border border-black bg-[#FFFBEB]">
                 <div className="text-[10px] font-bold text-gray-600 uppercase">Wants (Target 30%)</div>
                 <div className="text-sm font-black mt-0.5">{priorityBreakdown.wantsPct.toFixed(1)}%</div>
-                <div className="text-[10px] text-gray-500">{formatCurrency(priorityBreakdown.wantsAmount, currency)}</div>
+                <div className="text-[10px] text-gray-500">{formatCurrency(priorityBreakdown.wantsAmount, currency, isPrivacyMode)}</div>
               </div>
               <div className="p-2 border border-black bg-[#FFFBEB]">
                 <div className="text-[10px] font-bold text-gray-600 uppercase">Invest (Target 20%)</div>
                 <div className="text-sm font-black mt-0.5">{priorityBreakdown.investmentsPct.toFixed(1)}%</div>
-                <div className="text-[10px] text-gray-500">{formatCurrency(priorityBreakdown.investmentsAmount, currency)}</div>
+                <div className="text-[10px] text-gray-500">{formatCurrency(priorityBreakdown.investmentsAmount, currency, isPrivacyMode)}</div>
               </div>
             </div>
           </div>

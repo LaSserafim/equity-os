@@ -19,6 +19,8 @@ import {
   HelpCircle,
   Database,
   ExternalLink,
+  Eye,
+  EyeOff,
 } from 'lucide-react';
 
 export type ActiveTab = 'overview' | 'buckets' | 'analytics' | 'compounding' | 'transactions';
@@ -28,6 +30,8 @@ interface NavbarProps {
   setActiveTab: (tab: ActiveTab) => void;
   currency: CurrencyCode;
   onCurrencyChange: (currency: CurrencyCode) => void;
+  isPrivacyMode: boolean;
+  onTogglePrivacy: () => void;
   onExportData: () => void;
   onImportData: (jsonStr: string) => void;
   onResetData: () => void;
@@ -38,6 +42,8 @@ export function Navbar({
   setActiveTab,
   currency,
   onCurrencyChange,
+  isPrivacyMode,
+  onTogglePrivacy,
   onExportData,
   onImportData,
   onResetData,
@@ -153,6 +159,20 @@ export function Navbar({
               🇺🇸 USD ($)
             </button>
           </div>
+
+          {/* Privacy Toggle Button */}
+          <button
+            type="button"
+            onClick={onTogglePrivacy}
+            className={`px-2 py-0.5 font-mono text-[11px] font-black uppercase border border-black shadow-[1px_1px_0px_0px_#000000] active:translate-x-0.5 active:translate-y-0.5 flex items-center gap-1 cursor-pointer transition-all ${
+              isPrivacyMode ? 'bg-[#FF5E7E] text-white' : 'bg-white text-black hover:bg-gray-100'
+            }`}
+            title={isPrivacyMode ? 'Privacy Mode Active (Balances Hidden)' : 'Hide Balances & Equity'}
+          >
+            {isPrivacyMode ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
+            <span>{isPrivacyMode ? 'Hidden' : 'Hide'}</span>
+          </button>
+
           <button
             onClick={onExportData}
             className="px-2 py-0.5 border border-black bg-white hover:bg-yellow-200 font-bold shadow-[1px_1px_0px_0px_#000000] active:translate-x-0.5 active:translate-y-0.5 flex items-center gap-1 cursor-pointer"

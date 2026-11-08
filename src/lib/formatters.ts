@@ -1,6 +1,14 @@
 import { CurrencyCode } from '@/types/finance';
 
-export function formatCurrency(amount: number, currency: CurrencyCode = 'IDR'): string {
+export function formatCurrency(
+  amount: number,
+  currency: CurrencyCode = 'IDR',
+  isPrivate: boolean = false
+): string {
+  if (isPrivate) {
+    return currency === 'IDR' ? 'Rp ••••••••' : '$ ••••••••';
+  }
+
   if (isNaN(amount)) return currency === 'IDR' ? 'Rp 0' : '$0.00';
   
   try {
@@ -27,7 +35,12 @@ export function formatCurrency(amount: number, currency: CurrencyCode = 'IDR'): 
   }
 }
 
-export function formatCompactCurrency(amount: number, currency: CurrencyCode = 'IDR'): string {
+export function formatCompactCurrency(
+  amount: number,
+  currency: CurrencyCode = 'IDR',
+  isPrivate: boolean = false
+): string {
+  if (isPrivate) return '••••';
   if (isNaN(amount)) return currency === 'IDR' ? 'Rp 0' : '$0';
   
   if (currency === 'IDR') {

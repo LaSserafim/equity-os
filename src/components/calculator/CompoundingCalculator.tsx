@@ -37,6 +37,7 @@ interface CompoundingCalculatorProps {
   onSaveScenario: (scenario: CompoundingScenario) => void;
   onDeleteScenario: (scenarioId: string) => void;
   currency?: CurrencyCode;
+  isPrivacyMode?: boolean;
 }
 
 const FREQUENCY_MAP: Record<CompoundingFrequency, { label: string; periodsPerYear: number }> = {
@@ -60,6 +61,7 @@ export function CompoundingCalculator({
   onSaveScenario,
   onDeleteScenario,
   currency = 'IDR',
+  isPrivacyMode = false,
 }: CompoundingCalculatorProps) {
   const totalNetWorth = buckets.reduce((s, b) => s + b.current_balance, 0);
 
@@ -218,30 +220,30 @@ export function CompoundingCalculator({
               🏁 Projected Future Capital ({horizonYears} Years)
             </div>
             <div className="text-3xl md:text-4xl font-black text-black mt-1">
-              {formatCurrency(finalValue, currency)}
+              {formatCurrency(finalValue, currency, isPrivacyMode)}
             </div>
           </div>
           <div className="flex items-center gap-2 mt-3 text-xs font-bold text-black bg-white/80 border border-black p-1.5">
             <span>ROI Multiple: <strong>{multipleOnCapital.toFixed(2)}x</strong></span>
             <span>•</span>
-            <span>Total Gain: <strong>+{formatCurrency(finalProfit, currency)}</strong></span>
+            <span>Total Gain: <strong>+{formatCurrency(finalProfit, currency, isPrivacyMode)}</strong></span>
           </div>
         </div>
 
         <div className="bg-white border-[3px] border-black p-4 shadow-[4px_4px_0px_0px_#000000] flex flex-col justify-between">
           <div className="text-xs font-black uppercase text-gray-600">Total Deposits</div>
           <div className="text-2xl font-black text-black mt-1">
-            {formatCurrency(finalContributions, currency)}
+            {formatCurrency(finalContributions, currency, isPrivacyMode)}
           </div>
           <div className="text-[11px] text-gray-500 mt-2">
-            Principal ({formatCurrency(activePrincipal, currency)}) + Additions
+            Principal ({formatCurrency(activePrincipal, currency, isPrivacyMode)}) + Additions
           </div>
         </div>
 
         <div className="bg-[#46E88E] border-[3px] border-black p-4 shadow-[4px_4px_0px_0px_#000000] flex flex-col justify-between">
           <div className="text-xs font-black uppercase text-black">Pure Compounding Yield</div>
           <div className="text-2xl font-black text-black mt-1">
-            +{formatCurrency(finalProfit, currency)}
+            +{formatCurrency(finalProfit, currency, isPrivacyMode)}
           </div>
           <div className="text-[11px] font-bold text-black mt-2">
             {finalContributions > 0 ? `${((finalProfit / finalContributions) * 100).toFixed(0)}% return on cash` : '0%'}
@@ -272,12 +274,12 @@ export function CompoundingCalculator({
                   className="w-full bg-[#FFFBEB] border-2 border-black p-2 text-xs font-mono font-bold shadow-[2px_2px_0px_0px_#000000] focus:outline-none cursor-pointer"
                 >
                   <option value="total">
-                    🌟 Total Net Worth ({formatCurrency(totalNetWorth, currency)})
+                    🌟 Total Net Worth ({formatCurrency(totalNetWorth, currency, isPrivacyMode)})
                   </option>
                   <optgroup label="Assigned Specific Buckets">
                     {buckets.map((b) => (
                       <option key={b.id} value={b.id}>
-                        📦 {b.name} ({formatCurrency(b.current_balance, currency)})
+                        📦 {b.name} ({formatCurrency(b.current_balance, currency, isPrivacyMode)})
                       </option>
                     ))}
                   </optgroup>
@@ -288,7 +290,7 @@ export function CompoundingCalculator({
               {capitalSource === 'custom' && (
                 <BrutalInput
                   label="Custom Initial Starting Principal"
-                  prefix="$"
+                  prefix={currency === 'IDR' ? 'Rp' : '$'}
                   type="number"
                   step="100"
                   value={customPrincipal}
@@ -485,7 +487,7 @@ export function CompoundingCalculator({
                   <YAxis
                     stroke="#000000"
                     tick={{ fontFamily: 'monospace', fontSize: 11 }}
-                    tickFormatter={(val) => formatCompactCurrency(val, currency)}
+                    tickFormatter={(val) => formatCompactCurrency(val, currency, isPrivacyMode)}
                     tickLine={{ stroke: '#000000', strokeWidth: 1.5 }}
                   />
                   <Tooltip
@@ -502,7 +504,7 @@ export function CompoundingCalculator({
                                 {p.name}:
                               </span>
                               <span className="font-black text-black">
-                                {formatCurrency(Number(p.value), currency)}
+                                {formatCurrency(Number(p.value), currency, isPrivacyMode)}
                               </span>
                             </div>
                           ))}
@@ -591,9 +593,9 @@ export function CompoundingCalculator({
                   {projectionResults.map((row) => (
                     <tr key={row.year} className="hover:bg-yellow-50">
                       <td className="p-2 font-bold">{row.label}</td>
-                      <td className="p-2">{formatCurrency(row.totalContributed, currency)}</td>
-                      <td className="p-2 text-green-700 font-bold">+{formatCurrency(row.totalInterest, currency)}</td>
-                      <td className="p-2 text-right font-black">{formatCurrency(row.expectedValue, currency)}</td>
+                      <td className="p-2">{formatCurrency(row.totalContributed, currency, isPrivacyMode)}</td>
+                      <td className="p-2 text-green-700 font-bold">+{formatCurrency(row.totalInterest, currency, isPrivacyMode)}</td>
+                      <td className="p-2 text-right font-black">{formatCurrency(row.expectedValue, currency, isPrivacyMode)}</td>
                     </tr>
                   ))}
                 </tbody>
