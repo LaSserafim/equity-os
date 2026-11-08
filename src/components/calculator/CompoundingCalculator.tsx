@@ -4,12 +4,13 @@ import {
   CompoundingScenario,
   CompoundingFrequency,
   ContributionFrequency,
+  CurrencyCode,
 } from '@/types/finance';
 import { BrutalCard } from '@/components/ui/BrutalCard';
 import { BrutalButton } from '@/components/ui/BrutalButton';
 import { BrutalBadge } from '@/components/ui/BrutalBadge';
 import { BrutalInput, BrutalSelect } from '@/components/ui/BrutalInput';
-import { formatCurrency, formatPercent } from '@/lib/formatters';
+import { formatCurrency, formatPercent, formatCompactCurrency } from '@/lib/formatters';
 import {
   ResponsiveContainer,
   AreaChart,
@@ -35,6 +36,7 @@ interface CompoundingCalculatorProps {
   scenarios: CompoundingScenario[];
   onSaveScenario: (scenario: CompoundingScenario) => void;
   onDeleteScenario: (scenarioId: string) => void;
+  currency?: CurrencyCode;
 }
 
 const FREQUENCY_MAP: Record<CompoundingFrequency, { label: string; periodsPerYear: number }> = {
@@ -57,15 +59,16 @@ export function CompoundingCalculator({
   scenarios,
   onSaveScenario,
   onDeleteScenario,
+  currency = 'IDR',
 }: CompoundingCalculatorProps) {
   const totalNetWorth = buckets.reduce((s, b) => s + b.current_balance, 0);
 
   // Capital source: 'total' | bucketId | 'custom'
   const [capitalSource, setCapitalSource] = useState<string>('total');
-  const [customPrincipal, setCustomPrincipal] = useState<string>('25000');
+  const [customPrincipal, setCustomPrincipal] = useState<string>(currency === 'IDR' ? '50000000' : '25000');
   const [annualRate, setAnnualRate] = useState<string>('12.0');
   const [compFrequency, setCompFrequency] = useState<CompoundingFrequency>('monthly');
-  const [contributionAmount, setContributionAmount] = useState<string>('1000');
+  const [contributionAmount, setContributionAmount] = useState<string>(currency === 'IDR' ? '2500000' : '1000');
   const [contribFrequency, setContribFrequency] = useState<ContributionFrequency>('monthly');
   const [horizonYears, setHorizonYears] = useState<number>(10);
   const [enableVolatility, setEnableVolatility] = useState<boolean>(true);
@@ -215,30 +218,30 @@ export function CompoundingCalculator({
               🏁 Projected Future Capital ({horizonYears} Years)
             </div>
             <div className="text-3xl md:text-4xl font-black text-black mt-1">
-              {formatCurrency(finalValue)}
+              {formatCurrency(finalValue, currency)}
             </div>
           </div>
           <div className="flex items-center gap-2 mt-3 text-xs font-bold text-black bg-white/80 border border-black p-1.5">
             <span>ROI Multiple: <strong>{multipleOnCapital.toFixed(2)}x</strong></span>
             <span>•</span>
-            <span>Total Gain: <strong>+{formatCurrency(finalProfit)}</strong></span>
+            <span>Total Gain: <strong>+{formatCurrency(finalProfit, currency)}</strong></span>
           </div>
         </div>
 
         <div className="bg-white border-[3px] border-black p-4 shadow-[4px_4px_0px_0px_#000000] flex flex-col justify-between">
           <div className="text-xs font-black uppercase text-gray-600">Total Deposits</div>
           <div className="text-2xl font-black text-black mt-1">
-            {formatCurrency(finalContributions)}
+            {formatCurrency(finalContributions, currency)}
           </div>
           <div className="text-[11px] text-gray-500 mt-2">
-            Principal (${activePrincipal.toLocaleString()}) + Additions
+            Principal ({formatCurrency(activePrincipal, currency)}) + Additions
           </div>
         </div>
 
         <div className="bg-[#46E88E] border-[3px] border-black p-4 shadow-[4px_4px_0px_0px_#000000] flex flex-col justify-between">
           <div className="text-xs font-black uppercase text-black">Pure Compounding Yield</div>
           <div className="text-2xl font-black text-black mt-1">
-            +{formatCurrency(finalProfit)}
+            +{formatCurrency(finalProfit, currency)}
           </div>
           <div className="text-[11px] font-bold text-black mt-2">
             {finalContributions > 0 ? `${((finalProfit / finalContributions) * 100).toFixed(0)}% return on cash` : '0%'}
@@ -269,12 +272,12 @@ export function CompoundingCalculator({
                   className="w-full bg-[#FFFBEB] border-2 border-black p-2 text-xs font-mono font-bold shadow-[2px_2px_0px_0px_#000000] focus:outline-none cursor-pointer"
                 >
                   <option value="total">
-                    🌟 Total Net Worth (${totalNetWorth.toLocaleString()})
+                    🌟 Total Net Worth ({formatCurrency(totalNetWorth, currency)})
                   </option>
                   <optgroup label="Assigned Specific Buckets">
                     {buckets.map((b) => (
                       <option key={b.id} value={b.id}>
-                        📦 {b.name} (${b.current_balance.toLocaleString()})
+                        📦 {b.name} ({formatCurrency(b.current_balance, currency)})
                       </option>
                     ))}
                   </optgroup>
@@ -482,7 +485,7 @@ export function CompoundingCalculator({
                   <YAxis
                     stroke="#000000"
                     tick={{ fontFamily: 'monospace', fontSize: 11 }}
-                    tickFormatter={(val) => `$${val >= 1000 ? `${(val / 1000).toFixed(0)}k` : val}`}
+                    tickFormatter={(val) => formatCompactCurrency(val, currency)}
                     tickLine={{ stroke: '#000000', strokeWidth: 1.5 }}
                   />
                   <Tooltip
@@ -499,7 +502,7 @@ export function CompoundingCalculator({
                                 {p.name}:
                               </span>
                               <span className="font-black text-black">
-                                {formatCurrency(Number(p.value))}
+                                {formatCurrency(Number(p.value), currency)}
                               </span>
                             </div>
                           ))}
@@ -588,9 +591,9 @@ export function CompoundingCalculator({
                   {projectionResults.map((row) => (
                     <tr key={row.year} className="hover:bg-yellow-50">
                       <td className="p-2 font-bold">{row.label}</td>
-                      <td className="p-2">{formatCurrency(row.totalContributed)}</td>
-                      <td className="p-2 text-green-700 font-bold">+{formatCurrency(row.totalInterest)}</td>
-                      <td className="p-2 text-right font-black">{formatCurrency(row.expectedValue)}</td>
+                      <td className="p-2">{formatCurrency(row.totalContributed, currency)}</td>
+                      <td className="p-2 text-green-700 font-bold">+{formatCurrency(row.totalInterest, currency)}</td>
+                      <td className="p-2 text-right font-black">{formatCurrency(row.expectedValue, currency)}</td>
                     </tr>
                   ))}
                 </tbody>

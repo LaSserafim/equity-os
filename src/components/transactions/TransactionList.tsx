@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Transaction, EquityBucket, TransactionType, NeedVsWant } from '@/types/finance';
+import { Transaction, EquityBucket, TransactionType, NeedVsWant, CurrencyCode } from '@/types/finance';
 import { BrutalCard } from '@/components/ui/BrutalCard';
 import { BrutalButton } from '@/components/ui/BrutalButton';
 import { BrutalBadge } from '@/components/ui/BrutalBadge';
@@ -13,6 +13,7 @@ interface TransactionListProps {
   buckets: EquityBucket[];
   onSaveTransaction: (tx: Transaction) => void;
   onDeleteTransaction: (txId: string) => void;
+  currency?: CurrencyCode;
 }
 
 export function TransactionList({
@@ -20,6 +21,7 @@ export function TransactionList({
   buckets,
   onSaveTransaction,
   onDeleteTransaction,
+  currency = 'IDR',
 }: TransactionListProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [typeFilter, setTypeFilter] = useState<'all' | TransactionType>('all');
@@ -162,17 +164,17 @@ export function TransactionList({
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs font-mono font-bold">
         <div className="bg-[#46E88E] border-2 border-black p-2 shadow-[2px_2px_0px_0px_#000000] flex justify-between">
           <span>Inflow ({filtered.filter(t => t.type === 'income').length}):</span>
-          <span>+{formatCurrency(totalInflow)}</span>
+          <span>+{formatCurrency(totalInflow, currency)}</span>
         </div>
         <div className="bg-[#FF5E7E] text-white border-2 border-black p-2 shadow-[2px_2px_0px_0px_#000000] flex justify-between">
           <span>Outflow ({filtered.filter(t => t.type === 'expense').length}):</span>
-          <span>-{formatCurrency(totalOutflow)}</span>
+          <span>-{formatCurrency(totalOutflow, currency)}</span>
         </div>
         <div className={`border-2 border-black p-2 shadow-[2px_2px_0px_0px_#000000] flex justify-between ${
           netDelta >= 0 ? 'bg-[#FFDE59] text-black' : 'bg-[#EF4444] text-white'
         }`}>
           <span>Net Velocity:</span>
-          <span>{netDelta >= 0 ? `+${formatCurrency(netDelta)}` : formatCurrency(netDelta)}</span>
+          <span>{netDelta >= 0 ? `+${formatCurrency(netDelta, currency)}` : formatCurrency(netDelta, currency)}</span>
         </div>
       </div>
 
@@ -278,7 +280,7 @@ export function TransactionList({
                       <td className={`py-2.5 px-3 text-right font-black font-mono text-sm whitespace-nowrap ${
                         isIncome ? 'text-[#059669]' : 'text-[#DC2626]'
                       }`}>
-                        {isIncome ? `+${formatCurrency(tx.amount)}` : `-${formatCurrency(tx.amount)}`}
+                        {isIncome ? `+${formatCurrency(tx.amount, tx.currency || currency)}` : `-${formatCurrency(tx.amount, tx.currency || currency)}`}
                       </td>
 
                       {/* Actions */}
@@ -344,6 +346,7 @@ export function TransactionList({
         onSave={onSaveTransaction}
         buckets={buckets}
         initialTransaction={editingTx}
+        currency={currency}
       />
     </div>
   );

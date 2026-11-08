@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { EquityBucket, Transaction } from '@/types/finance';
+import { EquityBucket, Transaction, CurrencyCode } from '@/types/finance';
 import { BrutalCard } from '@/components/ui/BrutalCard';
 import { BrutalButton } from '@/components/ui/BrutalButton';
 import { BrutalBadge } from '@/components/ui/BrutalBadge';
@@ -13,6 +13,7 @@ interface EquityBucketsSectionProps {
   onSaveBucket: (bucket: EquityBucket) => void;
   onDeleteBucket: (bucketId: string) => void;
   onTransferCapital: (sourceId: string, targetId: string, amount: number) => void;
+  currency?: CurrencyCode;
 }
 
 export function EquityBucketsSection({
@@ -20,6 +21,7 @@ export function EquityBucketsSection({
   onSaveBucket,
   onDeleteBucket,
   onTransferCapital,
+  currency = 'IDR',
 }: EquityBucketsSectionProps) {
   const [isBucketModalOpen, setIsBucketModalOpen] = useState(false);
   const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
@@ -52,7 +54,7 @@ export function EquityBucketsSection({
         >
           <div className="flex flex-col gap-1">
             <span className="text-3xl md:text-4xl font-mono font-black tracking-tight text-black">
-              {formatCurrency(totalEquity)}
+              {formatCurrency(totalEquity, currency)}
             </span>
             <div className="flex items-center gap-2 mt-2">
               <span className="text-xs font-mono font-bold uppercase bg-black text-white px-2 py-0.5 border border-black">
@@ -73,11 +75,11 @@ export function EquityBucketsSection({
             <div className="flex items-center justify-between text-xs font-mono font-bold">
               <div className="flex items-center gap-2">
                 <span className="w-3 h-3 bg-[#46E88E] border border-black inline-block" />
-                <span>Liquid Cash: {formatCurrency(liquidEquity)} ({totalEquity > 0 ? formatPercent((liquidEquity / totalEquity) * 100) : '0%'})</span>
+                <span>Liquid Cash: {formatCurrency(liquidEquity, currency)} ({totalEquity > 0 ? formatPercent((liquidEquity / totalEquity) * 100) : '0%'})</span>
               </div>
               <div className="flex items-center gap-2">
                 <span className="w-3 h-3 bg-[#FF5E7E] border border-black inline-block" />
-                <span>Invested / Illiquid: {formatCurrency(investedEquity)} ({totalEquity > 0 ? formatPercent((investedEquity / totalEquity) * 100) : '0%'})</span>
+                <span>Invested / Illiquid: {formatCurrency(investedEquity, currency)} ({totalEquity > 0 ? formatPercent((investedEquity / totalEquity) * 100) : '0%'})</span>
               </div>
             </div>
 
@@ -187,7 +189,7 @@ export function EquityBucketsSection({
                 {/* Big Balance */}
                 <div className="my-1">
                   <div className="text-2xl font-mono font-black text-black">
-                    {formatCurrency(bucket.current_balance)}
+                    {formatCurrency(bucket.current_balance, currency)}
                   </div>
                   <div className="text-[11px] font-mono text-gray-600">
                     {actualPct.toFixed(1)}% of total net worth
@@ -261,6 +263,7 @@ export function EquityBucketsSection({
         onClose={() => setIsBucketModalOpen(false)}
         onSave={onSaveBucket}
         initialBucket={editingBucket}
+        currency={currency}
       />
 
       <TransferModal
@@ -268,6 +271,7 @@ export function EquityBucketsSection({
         onClose={() => setIsTransferModalOpen(false)}
         buckets={buckets}
         onTransfer={onTransferCapital}
+        currency={currency}
       />
     </div>
   );

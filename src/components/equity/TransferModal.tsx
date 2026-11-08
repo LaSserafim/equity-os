@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { EquityBucket } from '@/types/finance';
+import { EquityBucket, CurrencyCode } from '@/types/finance';
 import { BrutalModal } from '@/components/ui/BrutalModal';
 import { BrutalInput, BrutalSelect } from '@/components/ui/BrutalInput';
 import { BrutalButton } from '@/components/ui/BrutalButton';
@@ -10,6 +10,7 @@ interface TransferModalProps {
   onClose: () => void;
   buckets: EquityBucket[];
   onTransfer: (sourceBucketId: string, targetBucketId: string, amount: number) => void;
+  currency?: CurrencyCode;
 }
 
 export function TransferModal({
@@ -17,6 +18,7 @@ export function TransferModal({
   onClose,
   buckets,
   onTransfer,
+  currency = 'IDR',
 }: TransferModalProps) {
   const [sourceId, setSourceId] = useState(buckets[0]?.id || '');
   const [targetId, setTargetId] = useState(buckets[1]?.id || '');
@@ -38,11 +40,11 @@ export function TransferModal({
     }
     const numAmount = parseFloat(amount);
     if (isNaN(numAmount) || numAmount <= 0) {
-      setError('Transfer amount must be greater than $0.00');
+      setError('Transfer amount must be greater than zero');
       return;
     }
     if (sourceBucket && numAmount > sourceBucket.current_balance) {
-      setError(`Insufficient balance in ${sourceBucket.name}. Max: ${formatCurrency(sourceBucket.current_balance)}`);
+      setError(`Insufficient balance in ${sourceBucket.name}. Max: ${formatCurrency(sourceBucket.current_balance, currency)}`);
       return;
     }
 
@@ -53,7 +55,7 @@ export function TransferModal({
   };
 
   const bucketOptions = buckets.map((b) => ({
-    label: `${b.name} (${formatCurrency(b.current_balance)})`,
+    label: `${b.name} (${formatCurrency(b.current_balance, currency)})`,
     value: b.id,
   }));
 
@@ -85,14 +87,14 @@ export function TransferModal({
         />
 
         <BrutalInput
-          label="Capital Amount to Move"
-          prefix="$"
+          label={`Capital Amount to Move (${currency === 'IDR' ? 'IDR / Rp' : 'USD / $'})`}
+          prefix={currency === 'IDR' ? 'Rp' : '$'}
           type="number"
-          step="0.01"
-          placeholder="0.00"
+          step={currency === 'IDR' ? '1' : '0.01'}
+          placeholder={currency === 'IDR' ? '1000000' : '0.00'}
           value={amount}
           onChange={(e) => setAmount(e.target.value)}
-          helperText={sourceBucket ? `Available in source: ${formatCurrency(sourceBucket.current_balance)}` : undefined}
+          helperText={sourceBucket ? `Available in source: ${formatCurrency(sourceBucket.current_balance, currency)}` : undefined}
           required
         />
 

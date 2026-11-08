@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { EquityBucket, Transaction, CompoundingScenario, UserProfile } from '@/types/finance';
+import { EquityBucket, Transaction, CompoundingScenario, UserProfile, CurrencyCode } from '@/types/finance';
 import { FinanceStorage, DEFAULT_PROFILE } from '@/lib/storage';
 import { Navbar, ActiveTab } from '@/components/layout/Navbar';
 import { SurvivalRunwayGauge } from '@/components/metrics/SurvivalRunwayGauge';
@@ -188,6 +188,11 @@ export default function FinancialAssistantPage() {
     setScenarios(updated);
   };
 
+  // Handlers for Currency
+  const handleCurrencyChange = (newCurrency: CurrencyCode) => {
+    const updated = FinanceStorage.updateProfile({ base_currency: newCurrency }, user?.id);
+    setProfile(updated);
+  };
   // Export / Import / Reset
   const handleExportData = () => {
     const jsonStr = FinanceStorage.exportFullDataset();
@@ -291,6 +296,7 @@ export default function FinancialAssistantPage() {
   }
 
   // Derived aggregates for Quick Overview
+  const activeCurrency: CurrencyCode = profile.base_currency || 'IDR';
   const totalNetWorth = buckets.reduce((s, b) => s + b.current_balance, 0);
   const liquidReserves = buckets.filter((b) => b.is_liquid).reduce((s, b) => s + b.current_balance, 0);
 
@@ -309,6 +315,8 @@ export default function FinancialAssistantPage() {
       <Navbar
         activeTab={activeTab}
         setActiveTab={setActiveTab}
+        currency={activeCurrency}
+        onCurrencyChange={handleCurrencyChange}
         onExportData={handleExportData}
         onImportData={handleImportData}
         onResetData={handleResetData}
@@ -358,7 +366,7 @@ export default function FinancialAssistantPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <BrutalCard title="Total Equity" badge={buckets.length > 0 ? 'Live Net Worth' : 'No Data'} badgeColor={buckets.length > 0 ? 'yellow' : 'orange'} headerColor="bg-[#FFFBEB]">
                 <div className="text-2xl font-mono font-black text-black">
-                  {buckets.length > 0 ? formatCurrency(totalNetWorth) : '$0.00'}
+                  {buckets.length > 0 ? formatCurrency(totalNetWorth, activeCurrency) : (activeCurrency === 'IDR' ? 'Rp 0' : '$0.00')}
                 </div>
                 <div className="text-[11px] font-mono text-gray-600 mt-1">
                   {buckets.length === 0 ? 'No vaults configured' : `Across ${buckets.length} allocated vaults`}
@@ -367,7 +375,7 @@ export default function FinancialAssistantPage() {
 
               <BrutalCard title="Liquid Cash" badge={liquidReserves > 0 ? 'Available' : 'Insufficient Data'} badgeColor={liquidReserves > 0 ? 'green' : 'orange'} headerColor="bg-[#DCFCE7]">
                 <div className="text-2xl font-mono font-black text-black">
-                  {formatCurrency(liquidReserves)}
+                  {formatCurrency(liquidReserves, activeCurrency)}
                 </div>
                 <div className="text-[11px] font-mono text-gray-600 mt-1">
                   {totalNetWorth > 0 ? `${((liquidReserves / totalNetWorth) * 100).toFixed(1)}% of total equity` : 'No liquid vault balance'}
@@ -376,7 +384,7 @@ export default function FinancialAssistantPage() {
 
               <BrutalCard title="30-Day Cash Inflow" badge={last30dInflow > 0 ? 'Revenue' : 'No Inflow'} badgeColor={last30dInflow > 0 ? 'blue' : 'yellow'} headerColor="bg-[#DBEAFE]">
                 <div className="text-2xl font-mono font-black text-[#059669]">
-                  {last30dInflow > 0 ? `+${formatCurrency(last30dInflow)}` : '$0.00'}
+                  {last30dInflow > 0 ? `+${formatCurrency(last30dInflow, activeCurrency)}` : (activeCurrency === 'IDR' ? 'Rp 0' : '$0.00')}
                 </div>
                 <div className="text-[11px] font-mono text-gray-600 mt-1">
                   {last30dTx.filter((t) => t.type === 'income').length} income records in last 30d
@@ -385,7 +393,7 @@ export default function FinancialAssistantPage() {
 
               <BrutalCard title="30-Day Burn Rate" badge={last30dOutflow > 0 ? 'Outflow' : 'No Outflow'} badgeColor={last30dOutflow > 0 ? 'pink' : 'yellow'} headerColor="bg-[#FCE7F3]">
                 <div className="text-2xl font-mono font-black text-[#DC2626]">
-                  {last30dOutflow > 0 ? `-${formatCurrency(last30dOutflow)}` : '$0.00'}
+                  {last30dOutflow > 0 ? `-${formatCurrency(last30dOutflow, activeCurrency)}` : (activeCurrency === 'IDR' ? 'Rp 0' : '$0.00')}
                 </div>
                 <div className="text-[11px] font-mono text-gray-600 mt-1">
                   {last30dInflow > 0 ? `Savings Rate: ${formatPercent(savingsRate)}` : 'No burn telemetry recorded'}
@@ -398,6 +406,7 @@ export default function FinancialAssistantPage() {
               buckets={buckets}
               transactions={transactions}
               profile={profile}
+              currency={activeCurrency}
             />
 
             {/* Two-Column: Quick Buckets Mini-Grid + Recent Transactions */}
@@ -446,7 +455,7 @@ export default function FinancialAssistantPage() {
                             </div>
                           </div>
                           <div className="text-right">
-                            <div className="font-black text-xs text-black">{formatCurrency(b.current_balance)}</div>
+                            <div className="font-black text-xs text-black">{formatCurrency(b.current_balance, activeCurrency)}</div>
                             <div className="text-[10px] text-gray-600">{pct.toFixed(1)}%</div>
                           </div>
                         </div>
@@ -506,7 +515,7 @@ export default function FinancialAssistantPage() {
                           </div>
 
                           <div className={`font-black text-sm ${isIncome ? 'text-[#059669]' : 'text-[#DC2626]'}`}>
-                            {isIncome ? `+${formatCurrency(tx.amount)}` : `-${formatCurrency(tx.amount)}`}
+                            {isIncome ? `+${formatCurrency(tx.amount, tx.currency || activeCurrency)}` : `-${formatCurrency(tx.amount, tx.currency || activeCurrency)}`}
                           </div>
                         </div>
                       );
@@ -526,6 +535,7 @@ export default function FinancialAssistantPage() {
               onSaveBucket={handleSaveBucket}
               onDeleteBucket={handleDeleteBucket}
               onTransferCapital={handleTransferCapital}
+              currency={activeCurrency}
             />
           </div>
         )}
@@ -533,7 +543,7 @@ export default function FinancialAssistantPage() {
         {/* VIEW 3: TIME-SERIES ANALYTICS */}
         {activeTab === 'analytics' && (
           <div className="animate-in fade-in duration-150">
-            <AnalyticsSection transactions={transactions} />
+            <AnalyticsSection transactions={transactions} currency={activeCurrency} />
           </div>
         )}
 
@@ -545,6 +555,7 @@ export default function FinancialAssistantPage() {
               scenarios={scenarios}
               onSaveScenario={handleSaveScenario}
               onDeleteScenario={handleDeleteScenario}
+              currency={activeCurrency}
             />
           </div>
         )}
@@ -557,6 +568,7 @@ export default function FinancialAssistantPage() {
               buckets={buckets}
               onSaveTransaction={handleSaveTransaction}
               onDeleteTransaction={handleDeleteTransaction}
+              currency={activeCurrency}
             />
           </div>
         )}
@@ -568,6 +580,7 @@ export default function FinancialAssistantPage() {
         onClose={() => setIsQuickTxOpen(false)}
         onSave={handleSaveTransaction}
         buckets={buckets}
+        currency={activeCurrency}
       />
     </div>
   );

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { CurrencyCode } from '@/types/finance';
 import { BrutalButton } from '@/components/ui/BrutalButton';
 import { BrutalBadge } from '@/components/ui/BrutalBadge';
 import { BrutalModal } from '@/components/ui/BrutalModal';
@@ -25,6 +26,8 @@ export type ActiveTab = 'overview' | 'buckets' | 'analytics' | 'compounding' | '
 interface NavbarProps {
   activeTab: ActiveTab;
   setActiveTab: (tab: ActiveTab) => void;
+  currency: CurrencyCode;
+  onCurrencyChange: (currency: CurrencyCode) => void;
   onExportData: () => void;
   onImportData: (jsonStr: string) => void;
   onResetData: () => void;
@@ -33,6 +36,8 @@ interface NavbarProps {
 export function Navbar({
   activeTab,
   setActiveTab,
+  currency,
+  onCurrencyChange,
   onExportData,
   onImportData,
   onResetData,
@@ -120,6 +125,34 @@ export function Navbar({
         </div>
 
         <div className="flex items-center gap-2 flex-wrap">
+          {/* Currency Toggle Switcher */}
+          <div className="flex items-center border border-black bg-white shadow-[1px_1px_0px_0px_#000000] overflow-hidden">
+            <button
+              type="button"
+              onClick={() => onCurrencyChange('IDR')}
+              className={`px-2 py-0.5 font-mono text-[11px] font-black uppercase transition-all cursor-pointer ${
+                currency === 'IDR'
+                  ? 'bg-[#FFE81D] text-black'
+                  : 'bg-white text-gray-600 hover:bg-gray-100'
+              }`}
+              title="Indonesian Rupiah (Rp)"
+            >
+              🇮🇩 IDR (Rp)
+            </button>
+            <div className="w-[1px] bg-black h-4" />
+            <button
+              type="button"
+              onClick={() => onCurrencyChange('USD')}
+              className={`px-2 py-0.5 font-mono text-[11px] font-black uppercase transition-all cursor-pointer ${
+                currency === 'USD'
+                  ? 'bg-[#46E88E] text-black'
+                  : 'bg-white text-gray-600 hover:bg-gray-100'
+              }`}
+              title="US Dollar ($)"
+            >
+              🇺🇸 USD ($)
+            </button>
+          </div>
           <button
             onClick={onExportData}
             className="px-2 py-0.5 border border-black bg-white hover:bg-yellow-200 font-bold shadow-[1px_1px_0px_0px_#000000] active:translate-x-0.5 active:translate-y-0.5 flex items-center gap-1 cursor-pointer"

@@ -1,5 +1,5 @@
 import React from 'react';
-import { EquityBucket, Transaction, UserProfile } from '@/types/finance';
+import { EquityBucket, Transaction, UserProfile, CurrencyCode } from '@/types/finance';
 import { BrutalCard } from '@/components/ui/BrutalCard';
 import { BrutalBadge } from '@/components/ui/BrutalBadge';
 import { formatCurrency, formatPercent } from '@/lib/formatters';
@@ -9,12 +9,13 @@ interface SurvivalRunwayGaugeProps {
   buckets: EquityBucket[];
   transactions: Transaction[];
   profile: UserProfile;
+  currency?: CurrencyCode;
 }
-
 export function SurvivalRunwayGauge({
   buckets,
   transactions,
   profile,
+  currency = 'IDR',
 }: SurvivalRunwayGaugeProps) {
   // 1. Calculate liquid reserves
   const liquidReserves = buckets
@@ -64,10 +65,10 @@ export function SurvivalRunwayGauge({
           </div>
           <div className="flex items-center gap-2 shrink-0">
             <div className="text-[11px] font-bold bg-[#FFFBEB] border border-black px-2 py-1">
-              Liquid: {formatCurrency(liquidReserves)}
+              Liquid: {formatCurrency(liquidReserves, currency)}
             </div>
             <div className="text-[11px] font-bold bg-[#FFFBEB] border border-black px-2 py-1">
-              Burn: {formatCurrency(totalExpense90d)}
+              Burn: {formatCurrency(totalExpense90d, currency)}
             </div>
           </div>
         </div>
@@ -189,8 +190,8 @@ export function SurvivalRunwayGauge({
 
           <p className="text-xs text-gray-700 bg-yellow-50 p-2.5 border border-black/40">
             💡 <strong>Runway Assessment:</strong> {tierStatus.description} You possess{' '}
-            <strong>{formatCurrency(liquidReserves)}</strong> in liquid reserves against a baseline monthly burn of{' '}
-            <strong>{formatCurrency(averageMonthlyTotalBurn)}</strong>.
+            <strong>{formatCurrency(liquidReserves, currency)}</strong> in liquid reserves against a baseline monthly burn of{' '}
+            <strong>{formatCurrency(averageMonthlyTotalBurn, currency)}</strong>.
           </p>
         </div>
       </BrutalCard>
@@ -208,10 +209,10 @@ export function SurvivalRunwayGauge({
               {targetMonths}-Month Safety Target
             </div>
             <div className="text-2xl font-black text-black">
-              {formatCurrency(targetEmergencyFund)}
+              {formatCurrency(targetEmergencyFund, currency)}
             </div>
             <div className="text-xs text-gray-600 mt-1">
-              Currently funded: <strong>{formatCurrency(currentEmergencyFund)}</strong>
+              Currently funded: <strong>{formatCurrency(currentEmergencyFund, currency)}</strong>
             </div>
           </div>
 
@@ -228,11 +229,11 @@ export function SurvivalRunwayGauge({
           <div className="p-2 border border-black bg-white text-xs">
             {targetProgressPct >= 100 ? (
               <span className="text-green-700 font-bold flex items-center gap-1">
-                <ShieldCheck className="w-4 h-4" /> Target fully satisfied (+{formatCurrency(currentEmergencyFund - targetEmergencyFund)} buffer)
+                <ShieldCheck className="w-4 h-4" /> Target fully satisfied (+{formatCurrency(currentEmergencyFund - targetEmergencyFund, currency)} buffer)
               </span>
             ) : (
               <span className="text-orange-700 font-bold flex items-center gap-1">
-                <AlertTriangle className="w-4 h-4" /> Need {formatCurrency(targetEmergencyFund - currentEmergencyFund)} more to reach full target
+                <AlertTriangle className="w-4 h-4" /> Need {formatCurrency(targetEmergencyFund - currentEmergencyFund, currency)} more to reach full target
               </span>
             )}
           </div>

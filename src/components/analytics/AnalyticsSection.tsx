@@ -1,8 +1,8 @@
 import React, { useState, useMemo } from 'react';
-import { Transaction, TimeWindow, TimeSeriesPoint, CategorySummary } from '@/types/finance';
+import { Transaction, TimeWindow, TimeSeriesPoint, CategorySummary, CurrencyCode } from '@/types/finance';
 import { BrutalCard } from '@/components/ui/BrutalCard';
 import { BrutalBadge } from '@/components/ui/BrutalBadge';
-import { formatCurrency, formatPercent } from '@/lib/formatters';
+import { formatCurrency, formatPercent, formatCompactCurrency } from '@/lib/formatters';
 import {
   ResponsiveContainer,
   ComposedChart,
@@ -18,6 +18,7 @@ import { TrendingUp, PieChart as PieIcon, Calendar, ArrowUpRight, ArrowDownRight
 
 interface AnalyticsSectionProps {
   transactions: Transaction[];
+  currency?: CurrencyCode;
 }
 
 const TIMEFRAME_CONFIG: { label: string; value: TimeWindow; days: number }[] = [
@@ -49,9 +50,10 @@ interface CustomTooltipProps {
     color: string;
   }>;
   label?: string;
+  currency?: CurrencyCode;
 }
 
-function BrutalChartTooltip({ active, payload, label }: CustomTooltipProps) {
+function BrutalChartTooltip({ active, payload, label, currency = 'IDR' }: CustomTooltipProps) {
   if (!active || !payload || !payload.length) return null;
 
   return (
@@ -66,7 +68,7 @@ function BrutalChartTooltip({ active, payload, label }: CustomTooltipProps) {
               <span className="w-2 h-2 border border-black inline-block" style={{ backgroundColor: item.color }} />
               {item.name}:
             </span>
-            <span className="font-black text-black">{formatCurrency(item.value)}</span>
+            <span className="font-black text-black">{formatCurrency(item.value, currency)}</span>
           </div>
         ))}
       </div>
@@ -74,7 +76,7 @@ function BrutalChartTooltip({ active, payload, label }: CustomTooltipProps) {
   );
 }
 
-export function AnalyticsSection({ transactions }: AnalyticsSectionProps) {
+export function AnalyticsSection({ transactions, currency = 'IDR' }: AnalyticsSectionProps) {
   const [selectedWindow, setSelectedWindow] = useState<TimeWindow>('6M');
 
   // Filter transactions by selected timeframe window
@@ -256,7 +258,7 @@ export function AnalyticsSection({ transactions }: AnalyticsSectionProps) {
         <div className="bg-[#46E88E] border-2 border-black p-3 shadow-[3px_3px_0px_0px_#000000] flex items-center justify-between">
           <div>
             <div className="text-[10px] font-mono font-black uppercase text-black">Period Inflow</div>
-            <div className="text-xl font-mono font-black text-black">+{formatCurrency(totalWindowIncome)}</div>
+            <div className="text-xl font-mono font-black text-black">+{formatCurrency(totalWindowIncome, currency)}</div>
           </div>
           <ArrowUpRight className="w-6 h-6 text-black" />
         </div>
@@ -264,7 +266,7 @@ export function AnalyticsSection({ transactions }: AnalyticsSectionProps) {
         <div className="bg-[#FF5E7E] text-white border-2 border-black p-3 shadow-[3px_3px_0px_0px_#000000] flex items-center justify-between">
           <div>
             <div className="text-[10px] font-mono font-black uppercase text-white/90">Period Burn</div>
-            <div className="text-xl font-mono font-black text-white">-{formatCurrency(totalWindowExpense)}</div>
+            <div className="text-xl font-mono font-black text-white">-{formatCurrency(totalWindowExpense, currency)}</div>
           </div>
           <ArrowDownRight className="w-6 h-6 text-white" />
         </div>
@@ -304,10 +306,10 @@ export function AnalyticsSection({ transactions }: AnalyticsSectionProps) {
                 <YAxis
                   stroke="#000000"
                   tick={{ fontFamily: 'monospace', fontSize: 11 }}
-                  tickFormatter={(val) => `$${val >= 1000 ? `${(val / 1000).toFixed(0)}k` : val}`}
+                  tickFormatter={(val) => formatCompactCurrency(val, currency)}
                   tickLine={{ stroke: '#000000', strokeWidth: 1.5 }}
                 />
-                <Tooltip content={<BrutalChartTooltip />} />
+                <Tooltip content={<BrutalChartTooltip currency={currency} />} />
                 <Legend
                   wrapperStyle={{
                     fontFamily: 'monospace',
@@ -373,7 +375,7 @@ export function AnalyticsSection({ transactions }: AnalyticsSectionProps) {
                       <span className="text-gray-500 text-[10px]">({cat.count}x)</span>
                     </div>
                     <div className="font-black text-black">
-                      {formatCurrency(cat.total)} ({cat.percentage.toFixed(1)}%)
+                      {formatCurrency(cat.total, currency)} ({cat.percentage.toFixed(1)}%)
                     </div>
                   </div>
                   {/* Progress Bar */}
@@ -431,17 +433,17 @@ export function AnalyticsSection({ transactions }: AnalyticsSectionProps) {
               <div className="p-2 border border-black bg-[#FFFBEB]">
                 <div className="text-[10px] font-bold text-gray-600 uppercase">Needs (Target 50%)</div>
                 <div className="text-sm font-black mt-0.5">{priorityBreakdown.needsPct.toFixed(1)}%</div>
-                <div className="text-[10px] text-gray-500">{formatCurrency(priorityBreakdown.needsAmount)}</div>
+                <div className="text-[10px] text-gray-500">{formatCurrency(priorityBreakdown.needsAmount, currency)}</div>
               </div>
               <div className="p-2 border border-black bg-[#FFFBEB]">
                 <div className="text-[10px] font-bold text-gray-600 uppercase">Wants (Target 30%)</div>
                 <div className="text-sm font-black mt-0.5">{priorityBreakdown.wantsPct.toFixed(1)}%</div>
-                <div className="text-[10px] text-gray-500">{formatCurrency(priorityBreakdown.wantsAmount)}</div>
+                <div className="text-[10px] text-gray-500">{formatCurrency(priorityBreakdown.wantsAmount, currency)}</div>
               </div>
               <div className="p-2 border border-black bg-[#FFFBEB]">
                 <div className="text-[10px] font-bold text-gray-600 uppercase">Invest (Target 20%)</div>
                 <div className="text-sm font-black mt-0.5">{priorityBreakdown.investmentsPct.toFixed(1)}%</div>
-                <div className="text-[10px] text-gray-500">{formatCurrency(priorityBreakdown.investmentsAmount)}</div>
+                <div className="text-[10px] text-gray-500">{formatCurrency(priorityBreakdown.investmentsAmount, currency)}</div>
               </div>
             </div>
           </div>

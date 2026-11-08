@@ -10,6 +10,7 @@ interface TransactionModalProps {
   onSave: (tx: Transaction) => void;
   buckets: EquityBucket[];
   initialTransaction?: Transaction | null;
+  currency?: CurrencyCode;
 }
 
 const EXPENSE_CATEGORIES = [
@@ -41,6 +42,7 @@ export function TransactionModal({
   onSave,
   buckets,
   initialTransaction,
+  currency = 'IDR',
 }: TransactionModalProps) {
   const [type, setType] = useState<TransactionType>('expense');
   const [category, setCategory] = useState(EXPENSE_CATEGORIES[0]);
@@ -50,6 +52,7 @@ export function TransactionModal({
   const [needVsWant, setNeedVsWant] = useState<NeedVsWant>('need');
   const [isRecurring, setIsRecurring] = useState(false);
   const [note, setNote] = useState('');
+  const [txCurrency, setTxCurrency] = useState<CurrencyCode>(initialTransaction?.currency || currency);
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -62,6 +65,7 @@ export function TransactionModal({
       setNeedVsWant(initialTransaction.need_vs_want);
       setIsRecurring(initialTransaction.is_recurring);
       setNote(initialTransaction.note || '');
+      setTxCurrency(initialTransaction.currency || currency);
     } else {
       setType('expense');
       setCategory(EXPENSE_CATEGORIES[0]);
@@ -71,6 +75,7 @@ export function TransactionModal({
       setNeedVsWant('need');
       setIsRecurring(false);
       setNote('');
+      setTxCurrency(currency);
     }
     setError('');
   }, [initialTransaction, isOpen, buckets]);
@@ -92,7 +97,7 @@ export function TransactionModal({
       type,
       category,
       amount: numAmount,
-      currency: 'USD',
+      currency: txCurrency,
       date,
       bucket_id: bucketId || null,
       need_vs_want: needVsWant,
@@ -155,25 +160,40 @@ export function TransactionModal({
         </div>
 
         {/* Amount & Date */}
-        <div className="grid grid-cols-2 gap-3">
-          <BrutalInput
-            label="Transaction Amount"
-            prefix="$"
-            type="number"
-            step="0.01"
-            placeholder="0.00"
-            value={amount}
-            onChange={(e) => setAmount(e.target.value)}
-            required
-            autoFocus
-          />
-          <BrutalInput
-            label="Date Logged"
-            type="date"
-            value={date}
-            onChange={(e) => setDate(e.target.value)}
-            required
-          />
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="sm:col-span-1">
+            <BrutalSelect
+              label="Currency"
+              value={txCurrency}
+              onChange={(e) => setTxCurrency(e.target.value as CurrencyCode)}
+              options={[
+                { label: '🇮🇩 IDR (Rp)', value: 'IDR' },
+                { label: '🇺🇸 USD ($)', value: 'USD' },
+              ]}
+            />
+          </div>
+          <div className="sm:col-span-1">
+            <BrutalInput
+              label={`Amount (${txCurrency === 'IDR' ? 'Rp' : '$'})`}
+              prefix={txCurrency === 'IDR' ? 'Rp' : '$'}
+              type="number"
+              step={txCurrency === 'IDR' ? '1' : '0.01'}
+              placeholder={txCurrency === 'IDR' ? '100000' : '0.00'}
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              required
+              autoFocus
+            />
+          </div>
+          <div className="sm:col-span-1">
+            <BrutalInput
+              label="Date Logged"
+              type="date"
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+              required
+            />
+          </div>
         </div>
 
         {/* Category Picker & Custom input */}

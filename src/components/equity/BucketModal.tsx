@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { EquityBucket, BucketCategory } from '@/types/finance';
+import { EquityBucket, BucketCategory, CurrencyCode } from '@/types/finance';
 import { BrutalModal } from '@/components/ui/BrutalModal';
 import { BrutalInput, BrutalSelect } from '@/components/ui/BrutalInput';
 import { BrutalButton } from '@/components/ui/BrutalButton';
@@ -9,8 +9,8 @@ interface BucketModalProps {
   onClose: () => void;
   onSave: (bucket: EquityBucket) => void;
   initialBucket?: EquityBucket | null;
+  currency?: CurrencyCode;
 }
-
 const CATEGORY_OPTIONS: { label: string; value: BucketCategory }[] = [
   { label: 'Liquid Cash / Operating', value: 'liquid_cash' },
   { label: 'Emergency Fund (Shield)', value: 'emergency_fund' },
@@ -35,6 +35,7 @@ export function BucketModal({
   onClose,
   onSave,
   initialBucket,
+  currency = 'IDR',
 }: BucketModalProps) {
   const [name, setName] = useState('');
   const [category, setCategory] = useState<BucketCategory>('liquid_cash');
@@ -132,10 +133,10 @@ export function BucketModal({
 
         <div className="grid grid-cols-2 gap-3">
           <BrutalInput
-            label="Current Balance"
-            prefix="$"
+            label={`Current Balance (${currency === 'IDR' ? 'IDR / Rp' : 'USD / $'})`}
+            prefix={currency === 'IDR' ? 'Rp' : '$'}
             type="number"
-            step="0.01"
+            step={currency === 'IDR' ? '1' : '0.01'}
             value={balance}
             onChange={(e) => setBalance(e.target.value)}
             required

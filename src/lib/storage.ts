@@ -17,7 +17,7 @@ export const DEFAULT_PROFILE: UserProfile = {
   id: '',
   email: '',
   full_name: '',
-  base_currency: 'USD',
+  base_currency: 'IDR',
   monthly_income_baseline: 0,
   emergency_fund_target_months: 6,
 };

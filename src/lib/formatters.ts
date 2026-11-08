@@ -1,19 +1,49 @@
 import { CurrencyCode } from '@/types/finance';
 
-export function formatCurrency(amount: number, currency: CurrencyCode = 'USD'): string {
-  if (isNaN(amount)) return '$0.00';
+export function formatCurrency(amount: number, currency: CurrencyCode = 'IDR'): string {
+  if (isNaN(amount)) return currency === 'IDR' ? 'Rp 0' : '$0.00';
   
-  // Format depending on currency
   try {
+    if (currency === 'IDR') {
+      // Indonesian Rupiah standard convention: Rp 150.000 (no fractional cents)
+      return new Intl.NumberFormat('id-ID', {
+        style: 'currency',
+        currency: 'IDR',
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0,
+      }).format(Math.round(amount));
+    }
+
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: currency,
-      minimumFractionDigits: currency === 'IDR' || currency === 'JPY' ? 0 : 2,
-      maximumFractionDigits: currency === 'IDR' || currency === 'JPY' ? 0 : 2,
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
     }).format(amount);
   } catch {
-    return `$${amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
+    return currency === 'IDR'
+      ? `Rp ${Math.round(amount).toLocaleString('id-ID')}`
+      : `$${amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
   }
+}
+
+export function formatCompactCurrency(amount: number, currency: CurrencyCode = 'IDR'): string {
+  if (isNaN(amount)) return currency === 'IDR' ? 'Rp 0' : '$0';
+  
+  if (currency === 'IDR') {
+    const abs = Math.abs(amount);
+    const sign = amount < 0 ? '-' : '';
+    if (abs >= 1_000_000_000) return `${sign}Rp ${(abs / 1_000_000_000).toFixed(1)}M`; // Milyar
+    if (abs >= 1_000_000) return `${sign}Rp ${(abs / 1_000_000).toFixed(1)}jt`; // Juta
+    if (abs >= 1_000) return `${sign}Rp ${(abs / 1_000).toFixed(0)}rb`; // Ribu
+    return `${sign}Rp ${Math.round(abs)}`;
+  }
+
+  const abs = Math.abs(amount);
+  const sign = amount < 0 ? '-' : '';
+  if (abs >= 1_000_000) return `${sign}$${(abs / 1_000_000).toFixed(1)}M`;
+  if (abs >= 1_000) return `${sign}$${(abs / 1_000).toFixed(0)}k`;
+  return `${sign}$${Math.round(abs)}`;
 }
 
 export function formatPercent(value: number, decimals: number = 1): string {
