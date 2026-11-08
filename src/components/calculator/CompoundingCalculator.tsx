@@ -462,7 +462,15 @@ export function CompoundingCalculator({
             headerColor="bg-[#46E88E]"
           >
             <div className="h-96 w-full pt-2">
-              <ResponsiveContainer width="100%" height="100%">
+              {activePrincipal === 0 && (parseFloat(contributionAmount) || 0) === 0 ? (
+                <div className="h-full border-2 border-dashed border-black/40 flex flex-col items-center justify-center font-mono text-center p-6 gap-2 bg-[#FFFBEB]">
+                  <span className="text-xs font-black uppercase text-black">Insufficient Capital For Compounding Simulation</span>
+                  <span className="text-[11px] text-gray-600 max-w-md">
+                    Both principal and periodic contributions are $0. Select a funded equity vault or enter a custom starting amount (&gt; $0) to project future equity compounding.
+                  </span>
+                </div>
+              ) : (
+                <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={projectionResults} margin={{ top: 10, right: 10, left: 0, bottom: 20 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                   <XAxis
@@ -556,7 +564,8 @@ export function CompoundingCalculator({
                     />
                   )}
                 </AreaChart>
-              </ResponsiveContainer>
+                </ResponsiveContainer>
+              )}
             </div>
           </BrutalCard>
 

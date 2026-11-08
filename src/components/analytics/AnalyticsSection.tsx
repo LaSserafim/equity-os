@@ -192,6 +192,31 @@ export function AnalyticsSection({ transactions }: AnalyticsSectionProps) {
     ? ((totalWindowIncome - totalWindowExpense) / totalWindowIncome) * 100
     : 0;
 
+  if (transactions.length === 0) {
+    return (
+      <div className="flex flex-col gap-5">
+        <BrutalCard
+          title="Historical Cash Flow Trajectory & Analytics"
+          badge="No Real Data"
+          badgeColor="yellow"
+          headerColor="bg-[#FFE81D]"
+        >
+          <div className="flex flex-col items-center justify-center p-8 bg-white text-center gap-3 font-mono">
+            <div className="w-12 h-12 bg-[#FFDE59] border-2 border-black flex items-center justify-center shadow-[3px_3px_0px_0px_#000000]">
+              <PieIcon className="w-6 h-6 text-black" />
+            </div>
+            <h3 className="text-sm font-black uppercase text-black">
+              Insufficient Data For Time-Series Analytics
+            </h3>
+            <p className="text-xs text-gray-600 max-w-md">
+              No transactions have been logged yet. Real income and expense records will automatically generate adaptive timeframe charts (1W to 2Y), 50/30/20 budget allocations, and category burn statistics.
+            </p>
+          </div>
+        </BrutalCard>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col gap-5">
       {/* Timeframe Controls & Quick Telemetry Header */}
@@ -260,57 +285,64 @@ export function AnalyticsSection({ transactions }: AnalyticsSectionProps) {
         badgeColor="yellow"
         className="w-full"
       >
-        <div className="h-80 w-full pt-4">
-          <ResponsiveContainer width="100%" height="100%">
-            <ComposedChart data={timeSeriesData} margin={{ top: 10, right: 10, left: 0, bottom: 20 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-              <XAxis
-                dataKey="label"
-                stroke="#000000"
-                tick={{ fontFamily: 'monospace', fontSize: 11, fontWeight: 'bold' }}
-                tickLine={{ stroke: '#000000', strokeWidth: 1.5 }}
-              />
-              <YAxis
-                stroke="#000000"
-                tick={{ fontFamily: 'monospace', fontSize: 11 }}
-                tickFormatter={(val) => `$${val >= 1000 ? `${(val / 1000).toFixed(0)}k` : val}`}
-                tickLine={{ stroke: '#000000', strokeWidth: 1.5 }}
-              />
-              <Tooltip content={<BrutalChartTooltip />} />
-              <Legend
-                wrapperStyle={{
-                  fontFamily: 'monospace',
-                  fontSize: '12px',
-                  fontWeight: 'bold',
-                  paddingTop: '10px',
-                }}
-              />
-              <Bar
-                dataKey="income"
-                name="Income (+)"
-                fill="#46E88E"
-                stroke="#000000"
-                strokeWidth={2}
-                radius={[0, 0, 0, 0]}
-              />
-              <Bar
-                dataKey="expense"
-                name="Expense (-)"
-                fill="#FF5E7E"
-                stroke="#000000"
-                strokeWidth={2}
-                radius={[0, 0, 0, 0]}
-              />
-              <Line
-                type="monotone"
-                dataKey="netFlow"
-                name="Net Flow"
-                stroke="#000000"
-                strokeWidth={3}
-                dot={{ stroke: '#000000', strokeWidth: 2, r: 4, fill: '#FFE81D' }}
-              />
-            </ComposedChart>
-          </ResponsiveContainer>
+        <div className="min-h-80 w-full pt-4">
+          {timeSeriesData.length === 0 ? (
+            <div className="h-72 border-2 border-dashed border-black/40 flex flex-col items-center justify-center font-mono text-center p-6 gap-2 bg-[#FFFBEB]">
+              <span className="text-xs font-black uppercase text-black">No Transactions In Trailing {windowDays} Days</span>
+              <span className="text-[11px] text-gray-600">Select a wider timeframe (e.g. 1M, 6M, 1Y) or log new transactions to plot this graph.</span>
+            </div>
+          ) : (
+            <ResponsiveContainer width="100%" height={320}>
+              <ComposedChart data={timeSeriesData} margin={{ top: 10, right: 10, left: 0, bottom: 20 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                <XAxis
+                  dataKey="label"
+                  stroke="#000000"
+                  tick={{ fontFamily: 'monospace', fontSize: 11, fontWeight: 'bold' }}
+                  tickLine={{ stroke: '#000000', strokeWidth: 1.5 }}
+                />
+                <YAxis
+                  stroke="#000000"
+                  tick={{ fontFamily: 'monospace', fontSize: 11 }}
+                  tickFormatter={(val) => `$${val >= 1000 ? `${(val / 1000).toFixed(0)}k` : val}`}
+                  tickLine={{ stroke: '#000000', strokeWidth: 1.5 }}
+                />
+                <Tooltip content={<BrutalChartTooltip />} />
+                <Legend
+                  wrapperStyle={{
+                    fontFamily: 'monospace',
+                    fontSize: '12px',
+                    fontWeight: 'bold',
+                    paddingTop: '10px',
+                  }}
+                />
+                <Bar
+                  dataKey="income"
+                  name="Income (+)"
+                  fill="#46E88E"
+                  stroke="#000000"
+                  strokeWidth={2}
+                  radius={[0, 0, 0, 0]}
+                />
+                <Bar
+                  dataKey="expense"
+                  name="Expense (-)"
+                  fill="#FF5E7E"
+                  stroke="#000000"
+                  strokeWidth={2}
+                  radius={[0, 0, 0, 0]}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="netFlow"
+                  name="Net Flow"
+                  stroke="#000000"
+                  strokeWidth={3}
+                  dot={{ stroke: '#000000', strokeWidth: 2, r: 4, fill: '#FFE81D' }}
+                />
+              </ComposedChart>
+            </ResponsiveContainer>
+          )}
         </div>
       </BrutalCard>
 

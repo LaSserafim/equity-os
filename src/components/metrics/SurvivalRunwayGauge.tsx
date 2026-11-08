@@ -35,18 +35,50 @@ export function SurvivalRunwayGauge({
     .reduce((s, t) => s + t.amount, 0);
 
   // Monthly averages (normalized by 3 months)
-  const averageMonthlyTotalBurn = totalExpense90d > 0 ? totalExpense90d / 3 : 2500;
-  const averageMonthlyEssentialBurn = essentialExpense90d > 0 ? essentialExpense90d / 3 : 1800;
+  // If either liquid reserves or expenses are zero, we lack real telemetry for runway calculation
+  if (totalExpense90d === 0 || liquidReserves === 0) {
+    return (
+      <BrutalCard
+        title="Zero-Income Survival Runway Architecture"
+        badge="Insufficient Data"
+        badgeColor="orange"
+        headerColor="bg-[#FFE81D]"
+      >
+        <div className="flex flex-col md:flex-row items-center justify-between gap-4 p-4 bg-white border-2 border-black font-mono shadow-[2px_2px_0px_0px_#000000]">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-[#FF8A3D] border-2 border-black flex items-center justify-center text-black shrink-0 shadow-[2px_2px_0px_0px_#000000]">
+              <AlertTriangle className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="text-xs font-black uppercase text-black">
+                Insufficient Real Telemetry For Runway Calculation
+              </div>
+              <p className="text-[11px] text-gray-600 mt-0.5">
+                {liquidReserves === 0 && totalExpense90d === 0
+                  ? 'No liquid vaults or expense history found. Add liquid cash buckets and log monthly expenses to compute your runway.'
+                  : liquidReserves === 0
+                  ? 'Liquid cash reserves are currently $0.00. Assign a liquid vault to track survival buffer.'
+                  : 'No expenses logged in the trailing 90 days. Record expense transactions to determine monthly burn.'}
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <div className="text-[11px] font-bold bg-[#FFFBEB] border border-black px-2 py-1">
+              Liquid: {formatCurrency(liquidReserves)}
+            </div>
+            <div className="text-[11px] font-bold bg-[#FFFBEB] border border-black px-2 py-1">
+              Burn: {formatCurrency(totalExpense90d)}
+            </div>
+          </div>
+        </div>
+      </BrutalCard>
+    );
+  }
 
-  // 3. Survival Runway calculations
-  const runwayMonthsStrict = averageMonthlyTotalBurn > 0
-    ? liquidReserves / averageMonthlyTotalBurn
-    : 12;
-
-  const runwayMonthsEssential = averageMonthlyEssentialBurn > 0
-    ? liquidReserves / averageMonthlyEssentialBurn
-    : 18;
-
+  const averageMonthlyTotalBurn = totalExpense90d / 3;
+  const averageMonthlyEssentialBurn = essentialExpense90d > 0 ? essentialExpense90d / 3 : averageMonthlyTotalBurn;
+  const runwayMonthsStrict = liquidReserves / averageMonthlyTotalBurn;
+  const runwayMonthsEssential = liquidReserves / averageMonthlyEssentialBurn;
   // Emergency Target Target
   const targetMonths = profile.emergency_fund_target_months || 6;
   const targetEmergencyFund = averageMonthlyTotalBurn * targetMonths;

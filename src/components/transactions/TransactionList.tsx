@@ -193,8 +193,17 @@ export function TransactionList({
             <tbody className="divide-y-2 divide-black/20 text-xs">
               {paginated.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="py-8 text-center text-gray-500 font-mono">
-                    No transactions found matching your filter criteria.
+                  <td colSpan={6} className="py-12 text-center text-gray-500 font-mono">
+                    {transactions.length === 0 ? (
+                      <div className="flex flex-col items-center justify-center gap-2">
+                        <span className="text-xs font-black uppercase text-black">No Real Ledger Transactions Logged</span>
+                        <span className="text-[11px] text-gray-600 max-w-sm">
+                          Click &quot;Add Transaction&quot; above to record your first income, expense, or capital transfer.
+                        </span>
+                      </div>
+                    ) : (
+                      'No transactions found matching your filter criteria.'
+                    )}
                   </td>
                 </tr>
               ) : (

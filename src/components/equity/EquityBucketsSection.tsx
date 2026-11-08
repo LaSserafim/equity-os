@@ -6,7 +6,7 @@ import { BrutalBadge } from '@/components/ui/BrutalBadge';
 import { BucketModal } from './BucketModal';
 import { TransferModal } from './TransferModal';
 import { formatCurrency, formatPercent } from '@/lib/formatters';
-import { Plus, ArrowLeftRight, Edit3, Trash2, ShieldAlert, Droplets, Lock } from 'lucide-react';
+import { Plus, ArrowLeftRight, Edit3, Trash2, ShieldAlert, Droplets, Lock, Layers } from 'lucide-react';
 
 interface EquityBucketsSectionProps {
   buckets: EquityBucket[];
@@ -119,8 +119,22 @@ export function EquityBucketsSection({
         </BrutalCard>
       </div>
 
-      {/* Grid of Equity Buckets */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* Grid of Equity Buckets or Empty State */}
+      {buckets.length === 0 ? (
+        <div className="bg-white border-[3px] border-black shadow-[4px_4px_0px_0px_#000000] p-8 text-center flex flex-col items-center justify-center gap-3 font-mono">
+          <div className="w-12 h-12 bg-[#FFE81D] border-2 border-black flex items-center justify-center shadow-[3px_3px_0px_0px_#000000]">
+            <Layers className="w-6 h-6 text-black" />
+          </div>
+          <h3 className="text-sm font-black uppercase text-black">No Capital Vaults Assigned</h3>
+          <p className="text-xs text-gray-600 max-w-md">
+            You have not configured any asset buckets yet. Create your first bucket (e.g. Operating Checking, High-Yield Savings, S&P 500 Equities) to begin tracking real balances.
+          </p>
+          <BrutalButton variant="yellow" size="sm" icon={<Plus className="w-4 h-4" />} onClick={handleCreate}>
+            Create First Equity Vault
+          </BrutalButton>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {buckets.map((bucket) => {
           const actualPct = totalEquity > 0 ? (bucket.current_balance / totalEquity) * 100 : 0;
           const targetPct = bucket.target_allocation_pct || 0;
@@ -239,6 +253,7 @@ export function EquityBucketsSection({
           );
         })}
       </div>
+      )}
 
       {/* Modals */}
       <BucketModal
