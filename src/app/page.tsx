@@ -42,11 +42,36 @@ export default function FinancialAssistantPage() {
   const [authLoading, setAuthLoading] = useState(true);
   const [isPrivacyMode, setIsPrivacyMode] = useState(false);
   const [bypassAuth, setBypassAuth] = useState(false);
-  // Authentication & session management
+  const [authError, setAuthError] = useState<string | null>(null);
   useEffect(() => {
     let isSubscribed = true;
     const savedPrivacy = typeof window !== 'undefined' ? localStorage.getItem('neobrutal_privacy_mode') : null;
     if (savedPrivacy) setIsPrivacyMode(savedPrivacy === 'true');
+
+    if (typeof window !== 'undefined') {
+      const currentUrl = new URL(window.location.href);
+      const errParam = currentUrl.searchParams.get('auth_error') || currentUrl.searchParams.get('error_description');
+      if (errParam) setAuthError(decodeURIComponent(errParam));
+
+      const codeParam = currentUrl.searchParams.get('code');
+      if (codeParam) {
+        supabase.auth.exchangeCodeForSession(codeParam).then(({ data, error: exErr }) => {
+          if (!exErr && data?.user) {
+            setUser(data.user);
+            FinanceStorage.fetchCloudData(data.user.id).then((cloud) => {
+              if (cloud) {
+                setBuckets(cloud.buckets);
+                setTransactions(cloud.transactions);
+                setScenarios(cloud.scenarios);
+                setProfile(cloud.profile);
+              }
+            });
+            currentUrl.searchParams.delete('code');
+            window.history.replaceState({}, '', currentUrl.pathname + (currentUrl.search ? '?' + currentUrl.searchParams.toString() : ''));
+          }
+        });
+      }
+    }
 
     // Instantly load local data so numbers never wipe to zero on refresh
     setBuckets(FinanceStorage.getBuckets());
@@ -274,6 +299,18 @@ export default function FinancialAssistantPage() {
               Access is exclusive to authenticated Google accounts. All personal equity vaults, ledger records, and compounding blueprints are partitioned under strict PostgreSQL Row Level Security (RLS).
             </p>
 
+            {authError && (
+              <div className="bg-[#EF4444] text-white p-3 border-2 border-black font-mono text-xs font-bold shadow-[2px_2px_0px_0px_#000000] flex items-start gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                <div>
+                  <div className="font-black uppercase">Authentication Error</div>
+                  <div className="text-[11px] font-normal mt-0.5">{authError}</div>
+                  <div className="text-[10px] text-white/80 mt-1">
+                    Ensure https://equity-os-eight.vercel.app/** is in your Supabase Auth Redirect URLs.
+                  </div>
+                </div>
+              </div>
+            )}
             <button
               onClick={() => signInWithGoogle()}
               className="w-full flex items-center justify-center gap-3 bg-white hover:bg-[#FFE81D] text-black font-mono font-black text-xs uppercase p-3.5 border-[3px] border-black shadow-[4px_4px_0px_0px_#000000] active:translate-x-1 active:translate-y-1 active:shadow-none transition-all cursor-pointer"

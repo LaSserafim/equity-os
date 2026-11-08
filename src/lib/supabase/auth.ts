@@ -5,7 +5,7 @@ export async function signInWithGoogle() {
     throw new Error('Supabase environment variables not configured. Operating in Offline / Local Sandbox mode.');
   }
 
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000');
+  const siteUrl = typeof window !== 'undefined' ? window.location.origin : (process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000');
   
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: 'google',
