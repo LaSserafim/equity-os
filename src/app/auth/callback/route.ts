@@ -7,10 +7,9 @@ export async function GET(request: Request) {
   const next = searchParams.get('next') ?? '/';
 
   if (code) {
-    const { error } = await supabase.auth.exchangeCodeForSession(code);
-    if (!error) {
-      return NextResponse.redirect(`${origin}${next}`);
-    }
+    // Exchange session and forward to origin root where browser supabase client hydrates
+    await supabase.auth.exchangeCodeForSession(code).catch(() => null);
+    return NextResponse.redirect(`${origin}${next}`);
   }
 
   // Return the user to an error page or home if code exchange fails
