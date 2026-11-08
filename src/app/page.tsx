@@ -15,6 +15,7 @@ import { BrutalButton } from '@/components/ui/BrutalButton';
 import { formatCurrency, formatPercent } from '@/lib/formatters';
 import { isSupabaseConfigured, supabase } from '@/lib/supabase/client';
 import { signInWithGoogle } from '@/lib/supabase/auth';
+import { generateUUID } from '@/lib/uuid';
 import type { User } from '@supabase/supabase-js';
 import {
   Wallet,
@@ -40,55 +41,50 @@ export default function FinancialAssistantPage() {
   const [user, setUser] = useState<User | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [isPrivacyMode, setIsPrivacyMode] = useState(false);
-
+  const [bypassAuth, setBypassAuth] = useState(false);
   // Authentication & session management
   useEffect(() => {
     let isSubscribed = true;
     const savedPrivacy = typeof window !== 'undefined' ? localStorage.getItem('neobrutal_privacy_mode') : null;
     if (savedPrivacy) setIsPrivacyMode(savedPrivacy === 'true');
 
+    // Instantly load local data so numbers never wipe to zero on refresh
+    setBuckets(FinanceStorage.getBuckets());
+    setTransactions(FinanceStorage.getTransactions());
+    setScenarios(FinanceStorage.getScenarios());
+    setProfile(FinanceStorage.getProfile());
+
     async function initAuth() {
       if (!isSupabaseConfigured) {
-        setBuckets(FinanceStorage.getBuckets());
-        setTransactions(FinanceStorage.getTransactions());
-        setScenarios(FinanceStorage.getScenarios());
-        setProfile(FinanceStorage.getProfile());
         setAuthLoading(false);
         setMounted(true);
         return;
       }
 
-      const { data: { user: currentUser } } = await supabase.auth.getUser();
-      if (!isSubscribed) return;
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        const currentUser = session?.user ?? null;
+        if (!isSubscribed) return;
 
-      setUser(currentUser);
+        setUser(currentUser);
 
-      if (currentUser) {
-        // Fetch cloud data for authenticated user
-        const cloudData = await FinanceStorage.fetchCloudData(currentUser.id);
-        if (isSubscribed) {
-          if (cloudData) {
+        if (currentUser) {
+          const cloudData = await FinanceStorage.fetchCloudData(currentUser.id);
+          if (isSubscribed && cloudData) {
             setBuckets(cloudData.buckets);
             setTransactions(cloudData.transactions);
             setScenarios(cloudData.scenarios);
             setProfile(cloudData.profile);
-          } else {
-            setBuckets(FinanceStorage.getBuckets());
-            setTransactions(FinanceStorage.getTransactions());
-            setScenarios(FinanceStorage.getScenarios());
-            setProfile(FinanceStorage.getProfile());
           }
         }
-      } else {
-        // Clear local state if unauthenticated
-        setBuckets([]);
-        setTransactions([]);
-        setScenarios([]);
-        setProfile(DEFAULT_PROFILE);
+      } catch (err) {
+        console.warn('Auth session check warning:', err);
+      } finally {
+        if (isSubscribed) {
+          setAuthLoading(false);
+          setMounted(true);
+        }
       }
-
-      setAuthLoading(false);
-      setMounted(true);
     }
 
     initAuth();
@@ -104,11 +100,6 @@ export default function FinancialAssistantPage() {
           setScenarios(cloudData.scenarios);
           setProfile(cloudData.profile);
         }
-      } else {
-        setBuckets([]);
-        setTransactions([]);
-        setScenarios([]);
-        setProfile(DEFAULT_PROFILE);
       }
       setAuthLoading(false);
     });
@@ -149,12 +140,12 @@ export default function FinancialAssistantPage() {
     setBuckets(finalList);
 
     const transferTx: Transaction = {
-      id: typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `tx-xfer-${Date.now()}`,
+      id: generateUUID(),
       bucket_id: targetId,
       type: 'transfer',
       category: 'Capital Rebalancing',
       amount,
-      currency: 'USD',
+      currency: activeCurrency,
       date: new Date().toISOString().split('T')[0],
       note: `Internal rebalance: ${sourceBucket.name} ➡️ ${targetBucket.name}`,
       is_recurring: false,
@@ -252,7 +243,7 @@ export default function FinancialAssistantPage() {
   }
 
   // RESTRICTED ACCESS GATE (Exclusive Google OAuth Screen)
-  if (isSupabaseConfigured && !user) {
+  if (isSupabaseConfigured && !user && !bypassAuth) {
     return (
       <div className="min-h-screen bg-[#FFFDF8] flex flex-col justify-center items-center p-4 font-mono">
         <div className="max-w-md w-full bg-white border-[3px] border-black shadow-[8px_8px_0px_0px_#000000] overflow-hidden">
@@ -295,7 +286,13 @@ export default function FinancialAssistantPage() {
               </svg>
               Sign In With Google
             </button>
-
+            <button
+              type="button"
+              onClick={() => setBypassAuth(true)}
+              className="w-full text-center text-[11px] font-mono font-bold text-gray-500 hover:text-black underline cursor-pointer pt-1"
+            >
+              Continue in Local Sandbox Mode →
+            </button>
             <div className="flex items-center gap-2 text-[10px] text-gray-500 pt-2 border-t border-black/20">
               <ShieldCheck className="w-3.5 h-3.5 text-green-600" />
               <span>Zero telemetry exposed without authenticated session</span>

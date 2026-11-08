@@ -1,5 +1,6 @@
 import { EquityBucket, Transaction, CompoundingScenario, UserProfile } from '@/types/finance';
 import { supabase, isSupabaseConfigured } from './supabase/client';
+import { generateUUID, isValidUUID } from './uuid';
 
 const STORAGE_KEYS = {
   BUCKETS: 'neobrutal_equity_buckets_v1',
@@ -31,7 +32,9 @@ export class FinanceStorage {
     scenarios: CompoundingScenario[];
     profile: UserProfile;
   } | null> {
-    if (!isSupabaseConfigured || !userId) return null;
+    if (!isSupabaseConfigured || !userId || !isValidUUID(userId)) {
+      return null;
+    }
 
     try {
       const [bucketsRes, txRes, scRes, profileRes] = await Promise.all([
@@ -41,20 +44,81 @@ export class FinanceStorage {
         supabase.from('profiles').select('*').eq('id', userId).single(),
       ]);
 
-      const buckets: EquityBucket[] = bucketsRes.data || [];
-      const transactions: Transaction[] = txRes.data || [];
-      const scenarios: CompoundingScenario[] = scRes.data || [];
-      const profile: UserProfile = profileRes.data || { ...DEFAULT_PROFILE, id: userId };
+      if (bucketsRes.error) {
+        console.warn('Cloud fetch warning (buckets):', bucketsRes.error.message);
+      }
+      if (txRes.error) {
+        console.warn('Cloud fetch warning (transactions):', txRes.error.message);
+      }
+
+      // Read current local storage
+      const localBuckets = this.getBuckets();
+      const localTxs = this.getTransactions();
+      const localScenarios = this.getScenarios();
+      const localProfile = this.getProfile();
+
+      const cloudBuckets = bucketsRes.data && !bucketsRes.error ? bucketsRes.data : null;
+      const cloudTxs = txRes.data && !txRes.error ? txRes.data : null;
+      const cloudScenarios = scRes.data && !scRes.error ? scRes.data : null;
+      const cloudProfile = profileRes.data && !profileRes.error ? profileRes.data : null;
+
+      // Reconcile Buckets
+      let resolvedBuckets: EquityBucket[];
+      if (cloudBuckets && cloudBuckets.length > 0) {
+        resolvedBuckets = cloudBuckets;
+      } else if (localBuckets.length > 0) {
+        resolvedBuckets = localBuckets;
+        // Sync local data up to cloud for this authenticated user
+        for (const b of localBuckets) {
+          this.saveBucket(b, userId);
+        }
+      } else {
+        resolvedBuckets = [];
+      }
+
+      // Reconcile Transactions
+      let resolvedTxs: Transaction[];
+      if (cloudTxs && cloudTxs.length > 0) {
+        resolvedTxs = cloudTxs;
+      } else if (localTxs.length > 0) {
+        resolvedTxs = localTxs;
+        for (const t of localTxs) {
+          this.saveTransaction(t, userId);
+        }
+      } else {
+        resolvedTxs = [];
+      }
+
+      // Reconcile Scenarios
+      let resolvedScenarios: CompoundingScenario[];
+      if (cloudScenarios && cloudScenarios.length > 0) {
+        resolvedScenarios = cloudScenarios;
+      } else if (localScenarios.length > 0) {
+        resolvedScenarios = localScenarios;
+        for (const s of localScenarios) {
+          this.saveScenario(s, userId);
+        }
+      } else {
+        resolvedScenarios = [];
+      }
+
+      // Reconcile Profile
+      const resolvedProfile: UserProfile = cloudProfile || localProfile || { ...DEFAULT_PROFILE, id: userId };
 
       // Update local storage cache
       if (typeof window !== 'undefined') {
-        localStorage.setItem(STORAGE_KEYS.BUCKETS, JSON.stringify(buckets));
-        localStorage.setItem(STORAGE_KEYS.TRANSACTIONS, JSON.stringify(transactions));
-        localStorage.setItem(STORAGE_KEYS.SCENARIOS, JSON.stringify(scenarios));
-        localStorage.setItem(STORAGE_KEYS.PROFILE, JSON.stringify(profile));
+        localStorage.setItem(STORAGE_KEYS.BUCKETS, JSON.stringify(resolvedBuckets));
+        localStorage.setItem(STORAGE_KEYS.TRANSACTIONS, JSON.stringify(resolvedTxs));
+        localStorage.setItem(STORAGE_KEYS.SCENARIOS, JSON.stringify(resolvedScenarios));
+        localStorage.setItem(STORAGE_KEYS.PROFILE, JSON.stringify(resolvedProfile));
       }
 
-      return { buckets, transactions, scenarios, profile };
+      return {
+        buckets: resolvedBuckets,
+        transactions: resolvedTxs,
+        scenarios: resolvedScenarios,
+        profile: resolvedProfile,
+      };
     } catch (err) {
       console.error('Failed to fetch cloud data from Supabase:', err);
       return null;
@@ -67,7 +131,8 @@ export class FinanceStorage {
     const raw = localStorage.getItem(STORAGE_KEYS.BUCKETS);
     if (!raw) return [];
     try {
-      return JSON.parse(raw);
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed : [];
     } catch {
       return [];
     }
@@ -75,12 +140,13 @@ export class FinanceStorage {
 
   static saveBucket(bucket: EquityBucket, userId?: string): EquityBucket[] {
     const list = this.getBuckets();
-    const existingIndex = list.findIndex((b) => b.id === bucket.id);
+    const bucketId = isValidUUID(bucket.id) ? bucket.id : generateUUID();
+    const existingIndex = list.findIndex((b) => b.id === bucket.id || b.id === bucketId);
     let updated: EquityBucket[];
 
     const finalBucket: EquityBucket = {
       ...bucket,
-      id: bucket.id || (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `b-${Date.now()}`),
+      id: bucketId,
       updated_at: new Date().toISOString(),
     };
 
@@ -96,7 +162,7 @@ export class FinanceStorage {
     }
 
     // Async sync to Supabase if configured & authenticated
-    if (isSupabaseConfigured && userId) {
+    if (isSupabaseConfigured && userId && isValidUUID(userId)) {
       supabase.from('equity_buckets').upsert({
         id: finalBucket.id,
         user_id: userId,
@@ -122,7 +188,7 @@ export class FinanceStorage {
       localStorage.setItem(STORAGE_KEYS.BUCKETS, JSON.stringify(list));
     }
 
-    if (isSupabaseConfigured && userId) {
+    if (isSupabaseConfigured && userId && isValidUUID(userId) && isValidUUID(bucketId)) {
       supabase.from('equity_buckets').delete().eq('id', bucketId).eq('user_id', userId).then(({ error }) => {
         if (error) console.error('Cloud delete error (bucket):', error);
       });
@@ -137,7 +203,8 @@ export class FinanceStorage {
     const raw = localStorage.getItem(STORAGE_KEYS.TRANSACTIONS);
     if (!raw) return [];
     try {
-      return JSON.parse(raw);
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed : [];
     } catch {
       return [];
     }
@@ -148,13 +215,17 @@ export class FinanceStorage {
     userId?: string
   ): { transactions: Transaction[]; buckets: EquityBucket[] } {
     const list = this.getTransactions();
-    const existingIndex = list.findIndex((t) => t.id === tx.id);
+    const txId = isValidUUID(tx.id) ? tx.id : generateUUID();
+    const existingIndex = list.findIndex((t) => t.id === tx.id || t.id === txId);
     const isNew = existingIndex < 0;
     const oldTx = !isNew ? list[existingIndex] : null;
 
+    const validBucketId = tx.bucket_id && isValidUUID(tx.bucket_id) ? tx.bucket_id : null;
+
     const finalTx: Transaction = {
       ...tx,
-      id: tx.id || (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `tx-${Date.now()}`),
+      id: txId,
+      bucket_id: validBucketId,
       created_at: tx.created_at || new Date().toISOString(),
     };
 
@@ -194,15 +265,15 @@ export class FinanceStorage {
     }
 
     // Async sync to Supabase if configured & authenticated
-    if (isSupabaseConfigured && userId) {
+    if (isSupabaseConfigured && userId && isValidUUID(userId)) {
       supabase.from('transactions').upsert({
         id: finalTx.id,
         user_id: userId,
-        bucket_id: finalTx.bucket_id || null,
+        bucket_id: finalTx.bucket_id,
         type: finalTx.type,
         category: finalTx.category,
         amount: finalTx.amount,
-        currency: finalTx.currency || 'USD',
+        currency: finalTx.currency || 'IDR',
         date: finalTx.date,
         note: finalTx.note || null,
         is_recurring: finalTx.is_recurring || false,
@@ -211,10 +282,9 @@ export class FinanceStorage {
         if (error) console.error('Cloud sync error (transaction):', error);
       });
 
-      // Also update bucket balance in Supabase if changed
       if (finalTx.bucket_id) {
         const affectedBucket = currentBuckets.find((b) => b.id === finalTx.bucket_id);
-        if (affectedBucket) {
+        if (affectedBucket && isValidUUID(affectedBucket.id)) {
           supabase.from('equity_buckets').update({
             current_balance: affectedBucket.current_balance,
             updated_at: new Date().toISOString(),
@@ -253,14 +323,14 @@ export class FinanceStorage {
       localStorage.setItem(STORAGE_KEYS.TRANSACTIONS, JSON.stringify(filtered));
     }
 
-    if (isSupabaseConfigured && userId) {
+    if (isSupabaseConfigured && userId && isValidUUID(userId) && isValidUUID(txId)) {
       supabase.from('transactions').delete().eq('id', txId).eq('user_id', userId).then(({ error }) => {
         if (error) console.error('Cloud delete error (transaction):', error);
       });
 
-      if (target?.bucket_id) {
+      if (target?.bucket_id && isValidUUID(target.bucket_id)) {
         const affectedBucket = currentBuckets.find((b) => b.id === target.bucket_id);
-        if (affectedBucket) {
+        if (affectedBucket && isValidUUID(affectedBucket.id)) {
           supabase.from('equity_buckets').update({
             current_balance: affectedBucket.current_balance,
             updated_at: new Date().toISOString(),
@@ -278,7 +348,8 @@ export class FinanceStorage {
     const raw = localStorage.getItem(STORAGE_KEYS.SCENARIOS);
     if (!raw) return [];
     try {
-      return JSON.parse(raw);
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed : [];
     } catch {
       return [];
     }
@@ -286,12 +357,16 @@ export class FinanceStorage {
 
   static saveScenario(scenario: CompoundingScenario, userId?: string): CompoundingScenario[] {
     const list = this.getScenarios();
-    const existingIndex = list.findIndex((s) => s.id === scenario.id);
+    const scenarioId = isValidUUID(scenario.id) ? scenario.id : generateUUID();
+    const existingIndex = list.findIndex((s) => s.id === scenario.id || s.id === scenarioId);
     let updated: CompoundingScenario[];
+
+    const validBucketId = scenario.bucket_id && isValidUUID(scenario.bucket_id) ? scenario.bucket_id : null;
 
     const finalScenario: CompoundingScenario = {
       ...scenario,
-      id: scenario.id || (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `sc-${Date.now()}`),
+      id: scenarioId,
+      bucket_id: validBucketId,
     };
 
     if (existingIndex >= 0) {
@@ -305,11 +380,11 @@ export class FinanceStorage {
       localStorage.setItem(STORAGE_KEYS.SCENARIOS, JSON.stringify(updated));
     }
 
-    if (isSupabaseConfigured && userId) {
+    if (isSupabaseConfigured && userId && isValidUUID(userId)) {
       supabase.from('compounding_scenarios').upsert({
         id: finalScenario.id,
         user_id: userId,
-        bucket_id: finalScenario.bucket_id || null,
+        bucket_id: finalScenario.bucket_id,
         title: finalScenario.title,
         principal_amount: finalScenario.principal_amount,
         annual_rate_pct: finalScenario.annual_rate_pct,
@@ -333,7 +408,7 @@ export class FinanceStorage {
       localStorage.setItem(STORAGE_KEYS.SCENARIOS, JSON.stringify(list));
     }
 
-    if (isSupabaseConfigured && userId) {
+    if (isSupabaseConfigured && userId && isValidUUID(userId) && isValidUUID(id)) {
       supabase.from('compounding_scenarios').delete().eq('id', id).eq('user_id', userId).then(({ error }) => {
         if (error) console.error('Cloud delete error (scenario):', error);
       });
@@ -361,12 +436,12 @@ export class FinanceStorage {
       localStorage.setItem(STORAGE_KEYS.PROFILE, JSON.stringify(updated));
     }
 
-    if (isSupabaseConfigured && userId) {
+    if (isSupabaseConfigured && userId && isValidUUID(userId)) {
       supabase.from('profiles').upsert({
         id: userId,
         email: updated.email || null,
         full_name: updated.full_name || null,
-        base_currency: updated.base_currency || 'USD',
+        base_currency: updated.base_currency || 'IDR',
         monthly_income_baseline: updated.monthly_income_baseline || 0,
         emergency_fund_target_months: updated.emergency_fund_target_months || 6,
         updated_at: new Date().toISOString(),

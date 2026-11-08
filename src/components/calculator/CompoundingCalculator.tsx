@@ -6,6 +6,7 @@ import {
   ContributionFrequency,
   CurrencyCode,
 } from '@/types/finance';
+import { generateUUID } from '@/lib/uuid';
 import { BrutalCard } from '@/components/ui/BrutalCard';
 import { BrutalButton } from '@/components/ui/BrutalButton';
 import { BrutalBadge } from '@/components/ui/BrutalBadge';
@@ -195,7 +196,7 @@ export function CompoundingCalculator({
 
   const handleSave = () => {
     onSaveScenario({
-      id: `sc-${Date.now()}`,
+      id: generateUUID(),
       title: scenarioTitle.trim() || 'Custom Compounding Model',
       bucket_id: capitalSource !== 'total' && capitalSource !== 'custom' ? capitalSource : null,
       principal_amount: activePrincipal,

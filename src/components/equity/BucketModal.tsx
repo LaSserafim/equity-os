@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { EquityBucket, BucketCategory, CurrencyCode } from '@/types/finance';
+import { generateUUID } from '@/lib/uuid';
 import { BrutalModal } from '@/components/ui/BrutalModal';
 import { BrutalInput, BrutalSelect } from '@/components/ui/BrutalInput';
 import { BrutalButton } from '@/components/ui/BrutalButton';
@@ -85,7 +86,7 @@ export function BucketModal({
     }
 
     onSave({
-      id: initialBucket ? initialBucket.id : `b-${Date.now()}`,
+      id: initialBucket ? initialBucket.id : generateUUID(),
       name: name.trim(),
       category,
       current_balance: numBalance,

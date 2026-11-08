@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Transaction, TransactionType, NeedVsWant, EquityBucket, CurrencyCode } from '@/types/finance';
+import { generateUUID } from '@/lib/uuid';
 import { BrutalModal } from '@/components/ui/BrutalModal';
 import { BrutalInput, BrutalSelect } from '@/components/ui/BrutalInput';
 import { BrutalButton } from '@/components/ui/BrutalButton';
@@ -93,7 +94,7 @@ export function TransactionModal({
     }
 
     onSave({
-      id: initialTransaction ? initialTransaction.id : `tx-${Date.now()}`,
+      id: initialTransaction ? initialTransaction.id : generateUUID(),
       type,
       category,
       amount: numAmount,
