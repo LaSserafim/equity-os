@@ -377,15 +377,15 @@ export default function FinancialAssistantPage() {
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-[3px] border-black bg-[#FFE81D] p-5 shadow-[5px_5px_0px_0px_#000000]">
               <div>
                 <span className="text-[10px] font-mono font-black uppercase tracking-widest bg-black text-white px-2 py-0.5 border border-black">
-                  REAL CAPITAL TELEMETRY
+                  PORTFOLIO SUMMARY
                 </span>
                 <h2 className="text-xl md:text-2xl font-mono font-black uppercase text-black mt-1">
-                  Welcome back, {displayName}
+                  Capital Ledger • {displayName}
                 </h2>
                 <p className="text-xs font-mono font-bold text-black/80 mt-0.5">
                   {buckets.length === 0
-                    ? 'No equity vaults assigned yet. Create a vault to begin tracking real assets.'
-                    : `Your capital architecture is currently tracking across ${buckets.length} assigned equity vaults.`}
+                    ? 'No equity vaults configured. Add your first vault to begin balance tracking.'
+                    : `Tracking ${buckets.length} active capital vaults across asset classes.`}
                 </p>
               </div>
 
@@ -396,7 +396,7 @@ export default function FinancialAssistantPage() {
                   icon={<Plus className="w-3.5 h-3.5" />}
                   onClick={() => setIsQuickTxOpen(true)}
                 >
-                  Quick Log Entry
+                  Record Transaction
                 </BrutalButton>
                 <BrutalButton
                   variant="white"
@@ -404,14 +404,13 @@ export default function FinancialAssistantPage() {
                   icon={<Layers className="w-3.5 h-3.5" />}
                   onClick={() => setActiveTab('buckets')}
                 >
-                  Manage Buckets
+                  Asset Vaults
                 </BrutalButton>
               </div>
             </div>
-
             {/* Quick KPI Quad */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              <BrutalCard title="Total Equity" badge={buckets.length > 0 ? 'Live Net Worth' : 'No Data'} badgeColor={buckets.length > 0 ? 'yellow' : 'orange'} headerColor="bg-[#FFFBEB]">
+              <BrutalCard title="Total Equity" badge="Consolidated" badgeColor={buckets.length > 0 ? 'yellow' : 'orange'} headerColor="bg-[#FFFBEB]">
                 <div className="text-2xl font-mono font-black text-black">
                   {buckets.length > 0 ? formatCurrency(totalNetWorth, activeCurrency, isPrivacyMode) : (activeCurrency === 'IDR' ? 'Rp 0' : '$0.00')}
                 </div>
@@ -420,7 +419,7 @@ export default function FinancialAssistantPage() {
                 </div>
               </BrutalCard>
 
-              <BrutalCard title="Liquid Cash" badge={liquidReserves > 0 ? 'Available' : 'Insufficient Data'} badgeColor={liquidReserves > 0 ? 'green' : 'orange'} headerColor="bg-[#DCFCE7]">
+              <BrutalCard title="Liquid Cash" badge="Available Reserves" badgeColor={liquidReserves > 0 ? 'green' : 'orange'} headerColor="bg-[#DCFCE7]">
                 <div className="text-2xl font-mono font-black text-black">
                   {formatCurrency(liquidReserves, activeCurrency, isPrivacyMode)}
                 </div>
@@ -429,7 +428,7 @@ export default function FinancialAssistantPage() {
                 </div>
               </BrutalCard>
 
-              <BrutalCard title="30-Day Cash Inflow" badge={last30dInflow > 0 ? 'Revenue' : 'No Inflow'} badgeColor={last30dInflow > 0 ? 'blue' : 'yellow'} headerColor="bg-[#DBEAFE]">
+              <BrutalCard title="30-Day Cash Inflow" badge="Inflow" badgeColor={last30dInflow > 0 ? 'blue' : 'yellow'} headerColor="bg-[#DBEAFE]">
                 <div className="text-2xl font-mono font-black text-[#059669]">
                   {last30dInflow > 0 ? `+${formatCurrency(last30dInflow, activeCurrency, isPrivacyMode)}` : (activeCurrency === 'IDR' ? 'Rp 0' : '$0.00')}
                 </div>
@@ -438,7 +437,7 @@ export default function FinancialAssistantPage() {
                 </div>
               </BrutalCard>
 
-              <BrutalCard title="30-Day Burn Rate" badge={last30dOutflow > 0 ? 'Outflow' : 'No Outflow'} badgeColor={last30dOutflow > 0 ? 'pink' : 'yellow'} headerColor="bg-[#FCE7F3]">
+              <BrutalCard title="30-Day Burn Rate" badge="Outflow" badgeColor={last30dOutflow > 0 ? 'pink' : 'yellow'} headerColor="bg-[#FCE7F3]">
                 <div className="text-2xl font-mono font-black text-[#DC2626]">
                   {last30dOutflow > 0 ? `-${formatCurrency(last30dOutflow, activeCurrency, isPrivacyMode)}` : (activeCurrency === 'IDR' ? 'Rp 0' : '$0.00')}
                 </div>
@@ -464,13 +463,13 @@ export default function FinancialAssistantPage() {
                 <div className="flex items-center justify-between border-b-2 border-black pb-2">
                   <h3 className="font-mono font-black text-xs uppercase tracking-wider text-black flex items-center gap-1.5">
                     <Layers className="w-3.5 h-3.5" />
-                    Allocated Equity Vaults
+                    Asset Vaults
                   </h3>
                   <button
                     onClick={() => setActiveTab('buckets')}
                     className="text-xs font-mono font-bold underline hover:text-blue-600 cursor-pointer"
                   >
-                    View All ({buckets.length}) →
+                    View All ({buckets.length})
                   </button>
                 </div>
 
@@ -518,13 +517,13 @@ export default function FinancialAssistantPage() {
                 <div className="flex items-center justify-between border-b-2 border-black pb-2">
                   <h3 className="font-mono font-black text-xs uppercase tracking-wider text-black flex items-center gap-1.5">
                     <TrendingUp className="w-3.5 h-3.5" />
-                    Recent Cash Velocity Ledger
+                    Recent Activity
                   </h3>
                   <button
                     onClick={() => setActiveTab('transactions')}
                     className="text-xs font-mono font-bold underline hover:text-blue-600 cursor-pointer"
                   >
-                    Open Ledger ({transactions.length}) →
+                    Open Ledger ({transactions.length})
                   </button>
                 </div>
 

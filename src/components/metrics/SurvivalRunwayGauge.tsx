@@ -191,7 +191,7 @@ export function SurvivalRunwayGauge({
           </div>
 
           <p className="text-xs text-gray-700 bg-yellow-50 p-2.5 border border-black/40">
-            💡 <strong>Runway Assessment:</strong> {tierStatus.description} You possess{' '}
+            <strong>Runway Assessment:</strong> {tierStatus.description} You possess{' '}
             <strong>{formatCurrency(liquidReserves, currency, isPrivacyMode)}</strong> in liquid reserves against a baseline monthly burn of{' '}
             <strong>{formatCurrency(averageMonthlyTotalBurn, currency, isPrivacyMode)}</strong>.
           </p>

@@ -61,7 +61,7 @@ function BrutalChartTooltip({ active, payload, label, currency = 'IDR', isPrivac
   return (
     <div className="bg-white border-2 border-black p-3 shadow-[4px_4px_0px_0px_#000000] font-mono text-xs">
       <div className="font-black text-black border-b border-black pb-1 mb-2 uppercase">
-        📅 {label}
+        {label}
       </div>
       <div className="flex flex-col gap-1">
         {payload.map((item) => (

@@ -16,7 +16,6 @@ import {
   RefreshCw,
   LogIn,
   LogOut,
-  HelpCircle,
   Database,
   ExternalLink,
   Eye,
@@ -49,7 +48,6 @@ export function Navbar({
   onResetData,
 }: NavbarProps) {
   const [userEmail, setUserEmail] = useState<string | null>(null);
-  const [isHelpOpen, setIsHelpOpen] = useState(false);
   const [importInput, setImportInput] = useState('');
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [importError, setImportError] = useState('');
@@ -121,13 +119,6 @@ export function Navbar({
             </BrutalBadge>
           )}
 
-          <button
-            onClick={() => setIsHelpOpen(true)}
-            className="text-gray-600 hover:text-black font-bold flex items-center gap-1 cursor-pointer"
-          >
-            <HelpCircle className="w-3.5 h-3.5" />
-            Supabase Setup Guide
-          </button>
         </div>
 
         <div className="flex items-center gap-2 flex-wrap">
@@ -187,18 +178,6 @@ export function Navbar({
           >
             <Upload className="w-3 h-3" /> Import
           </button>
-          <button
-            onClick={() => {
-              if (confirm('Reset to initial realistic institutional sample data?')) {
-                onResetData();
-              }
-            }}
-            className="px-2 py-0.5 border border-black bg-white hover:bg-[#FF5E7E] hover:text-white font-bold shadow-[1px_1px_0px_0px_#000000] active:translate-x-0.5 active:translate-y-0.5 flex items-center gap-1 cursor-pointer"
-            title="Reload default sample transactions and buckets"
-          >
-            <RefreshCw className="w-3 h-3" /> Reset Demo
-          </button>
-
           {userEmail ? (
             <button
               onClick={handleSignOut}
@@ -220,18 +199,13 @@ export function Navbar({
       {/* Main Brand & Tab Navigation */}
       <div className="px-4 py-3 flex flex-col md:flex-row items-center justify-between gap-4">
         {/* Brand Mark */}
-        <div className="flex items-center gap-2 select-none">
-          <div className="w-9 h-9 bg-[#FFE81D] border-2 border-black shadow-[3px_3px_0px_0px_#000000] flex items-center justify-center font-mono font-black text-lg">
-            ⚡
+        <div className="flex items-center gap-2.5 select-none">
+          <div className="w-8 h-8 bg-black text-white border-2 border-black shadow-[2px_2px_0px_0px_#000000] flex items-center justify-center font-mono font-black text-xs tracking-wider">
+            EQ
           </div>
-          <div>
-            <h1 className="font-mono font-black text-lg uppercase tracking-tight text-black leading-none">
-              EQUITY.OS // FINANCIAL ASSISTANT
-            </h1>
-            <p className="text-[10px] font-mono font-bold text-gray-500 uppercase tracking-widest mt-0.5">
-              Institutional Allocation & Compounding Engine
-            </p>
-          </div>
+          <h1 className="font-mono font-black text-base uppercase tracking-tight text-black">
+            EQUITY.OS
+          </h1>
         </div>
 
         {/* Tab Navigation Pills */}
@@ -256,54 +230,6 @@ export function Navbar({
           })}
         </nav>
       </div>
-
-      {/* Supabase Setup Modal */}
-      <BrutalModal
-        isOpen={isHelpOpen}
-        onClose={() => setIsHelpOpen(false)}
-        title="Supabase & Google OAuth Configuration"
-        maxWidth="lg"
-      >
-        <div className="flex flex-col gap-3 font-mono text-xs">
-          <p className="text-gray-800">
-            This application is fully production-ready for Supabase with PostgreSQL Row Level Security (RLS) and Google OAuth.
-          </p>
-
-          <div className="p-3 border-2 border-black bg-[#FFFBEB] flex flex-col gap-1.5">
-            <h4 className="font-black uppercase">Step 1: Run Database Schema</h4>
-            <p className="text-gray-700">
-              In your Supabase project dashboard, navigate to <strong>SQL Editor</strong> and run the provided script in:
-            </p>
-            <code className="bg-white p-1 border border-black font-bold">
-              supabase/schema.sql
-            </code>
-          </div>
-
-          <div className="p-3 border-2 border-black bg-[#FFFBEB] flex flex-col gap-1.5">
-            <h4 className="font-black uppercase">Step 2: Add Environment Variables</h4>
-            <p className="text-gray-700">
-              Create a <code className="font-bold">.env.local</code> file in this project root:
-            </p>
-            <pre className="bg-white p-2 border border-black overflow-x-auto text-[11px]">
-{`NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key`}
-            </pre>
-          </div>
-
-          <div className="p-3 border-2 border-black bg-[#FFFBEB] flex flex-col gap-1.5">
-            <h4 className="font-black uppercase">Step 3: Enable Google Provider</h4>
-            <p className="text-gray-700">
-              In Supabase under <strong>Authentication → Providers → Google</strong>, turn on Google sign-in and paste your Google Cloud OAuth Client ID & Secret.
-            </p>
-          </div>
-
-          <div className="flex justify-end pt-2">
-            <BrutalButton variant="yellow" size="sm" onClick={() => setIsHelpOpen(false)}>
-              Got It
-            </BrutalButton>
-          </div>
-        </div>
-      </BrutalModal>
 
       {/* JSON Import Modal */}
       <BrutalModal

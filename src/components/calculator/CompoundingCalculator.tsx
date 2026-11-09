@@ -41,6 +41,8 @@ interface CompoundingCalculatorProps {
   isPrivacyMode?: boolean;
 }
 
+export type RatePeriod = 'daily' | 'weekly' | 'monthly' | 'yearly';
+
 const FREQUENCY_MAP: Record<CompoundingFrequency, { label: string; periodsPerYear: number }> = {
   daily: { label: 'Daily (365x / yr)', periodsPerYear: 365 },
   weekly: { label: 'Weekly (52x / yr)', periodsPerYear: 52 },
@@ -69,8 +71,9 @@ export function CompoundingCalculator({
   // Capital source: 'total' | bucketId | 'custom'
   const [capitalSource, setCapitalSource] = useState<string>('total');
   const [customPrincipal, setCustomPrincipal] = useState<string>(currency === 'IDR' ? '50000000' : '25000');
-  const [annualRate, setAnnualRate] = useState<string>('12.0');
-  const [compFrequency, setCompFrequency] = useState<CompoundingFrequency>('monthly');
+  const [ratePeriod, setRatePeriod] = useState<RatePeriod>('yearly');
+  const [rateInput, setRateInput] = useState<string>('12.0');
+  const [compFrequency, setCompFrequency] = useState<CompoundingFrequency>('yearly');
   const [contributionAmount, setContributionAmount] = useState<string>(currency === 'IDR' ? '2500000' : '1000');
   const [contribFrequency, setContribFrequency] = useState<ContributionFrequency>('monthly');
   const [horizonYears, setHorizonYears] = useState<number>(10);
@@ -93,7 +96,8 @@ export function CompoundingCalculator({
   // Load a saved scenario
   const handleLoadScenario = (sc: CompoundingScenario) => {
     setScenarioTitle(sc.title);
-    setAnnualRate(String(sc.annual_rate_pct));
+    setRatePeriod('yearly');
+    setRateInput(String(sc.annual_rate_pct));
     setCompFrequency(sc.compounding_frequency);
     setContributionAmount(String(sc.contribution_amount));
     setContribFrequency(sc.contribution_frequency);
@@ -109,15 +113,60 @@ export function CompoundingCalculator({
     }
   };
 
+  const parsedRate = Math.max(0, parseFloat(rateInput) || 0) / 100;
+
+  // Convert period rate to annualized nominal rate and effective APY
+  const { nominalAnnualRate, annualizedAPY } = useMemo(() => {
+    if (parsedRate <= 0) return { nominalAnnualRate: 0, annualizedAPY: 0 };
+    if (ratePeriod === 'daily') {
+      return {
+        nominalAnnualRate: parsedRate * 365,
+        annualizedAPY: (Math.pow(1 + parsedRate, 365) - 1) * 100,
+      };
+    }
+    if (ratePeriod === 'weekly') {
+      return {
+        nominalAnnualRate: parsedRate * 52,
+        annualizedAPY: (Math.pow(1 + parsedRate, 52) - 1) * 100,
+      };
+    }
+    if (ratePeriod === 'monthly') {
+      return {
+        nominalAnnualRate: parsedRate * 12,
+        annualizedAPY: (Math.pow(1 + parsedRate, 12) - 1) * 100,
+      };
+    }
+    return {
+      nominalAnnualRate: parsedRate,
+      annualizedAPY: parsedRate * 100,
+    };
+  }, [parsedRate, ratePeriod]);
+
+  const handleRatePeriodChange = (p: RatePeriod) => {
+    setRatePeriod(p);
+    if (p === 'daily') {
+      setRateInput('0.5');
+      setCompFrequency('daily');
+    } else if (p === 'weekly') {
+      setRateInput('2.0');
+      setCompFrequency('weekly');
+    } else if (p === 'monthly') {
+      setRateInput('5.0');
+      setCompFrequency('monthly');
+    } else {
+      setRateInput('12.0');
+      setCompFrequency('yearly');
+    }
+  };
+
   // Perform discrete compounding calculation across each year
   const projectionResults = useMemo(() => {
     const P = activePrincipal;
-    const r = (parseFloat(annualRate) || 0) / 100;
+    const r = nominalAnnualRate;
     const n = FREQUENCY_MAP[compFrequency].periodsPerYear;
     const PMT = parseFloat(contributionAmount) || 0;
     const k = CONTRIBUTION_MAP[contribFrequency].timesPerYear;
     const vol = (parseFloat(volatilityPct) || 15) / 100;
-
     const data: Array<{
       year: number;
       label: string;
@@ -180,7 +229,7 @@ export function CompoundingCalculator({
     return data;
   }, [
     activePrincipal,
-    annualRate,
+    nominalAnnualRate,
     compFrequency,
     contributionAmount,
     contribFrequency,
@@ -200,7 +249,7 @@ export function CompoundingCalculator({
       title: scenarioTitle.trim() || 'Custom Compounding Model',
       bucket_id: capitalSource !== 'total' && capitalSource !== 'custom' ? capitalSource : null,
       principal_amount: activePrincipal,
-      annual_rate_pct: parseFloat(annualRate) || 10,
+      annual_rate_pct: Math.round(annualizedAPY * 100) / 100,
       compounding_frequency: compFrequency,
       contribution_amount: parseFloat(contributionAmount) || 0,
       contribution_frequency: contribFrequency,
@@ -218,7 +267,7 @@ export function CompoundingCalculator({
         <div className="bg-[#FFE81D] border-[3px] border-black p-4 shadow-[5px_5px_0px_0px_#000000] md:col-span-2 flex flex-col justify-between">
           <div>
             <div className="text-xs font-black uppercase text-black">
-              🏁 Projected Future Capital ({horizonYears} Years)
+              Projected Capital ({horizonYears} Years)
             </div>
             <div className="text-3xl md:text-4xl font-black text-black mt-1">
               {formatCurrency(finalValue, currency, isPrivacyMode)}
@@ -275,16 +324,16 @@ export function CompoundingCalculator({
                   className="w-full bg-[#FFFBEB] border-2 border-black p-2 text-xs font-mono font-bold shadow-[2px_2px_0px_0px_#000000] focus:outline-none cursor-pointer"
                 >
                   <option value="total">
-                    🌟 Total Net Worth ({formatCurrency(totalNetWorth, currency, isPrivacyMode)})
+                    Total Net Worth ({formatCurrency(totalNetWorth, currency, isPrivacyMode)})
                   </option>
                   <optgroup label="Assigned Specific Buckets">
                     {buckets.map((b) => (
                       <option key={b.id} value={b.id}>
-                        📦 {b.name} ({formatCurrency(b.current_balance, currency, isPrivacyMode)})
+                        {b.name} ({formatCurrency(b.current_balance, currency, isPrivacyMode)})
                       </option>
                     ))}
                   </optgroup>
-                  <option value="custom">✏️ Custom Starting Amount...</option>
+                  <option value="custom">Custom Starting Principal...</option>
                 </select>
               </div>
 
@@ -299,38 +348,68 @@ export function CompoundingCalculator({
                 />
               )}
 
-              {/* Annual Interest / Growth Rate */}
-              <div className="grid grid-cols-2 gap-3">
-                <BrutalInput
-                  label="Expected Annual Gain (%)"
-                  type="number"
-                  step="0.1"
-                  min="0.1"
-                  max="1000"
-                  value={annualRate}
-                  onChange={(e) => setAnnualRate(e.target.value)}
-                  prefix="%"
-                  helperText="e.g. 10.5% (S&P), 25% (Crypto)"
-                />
+              {/* Gain Rate with Period Basis Toggle */}
+              <div className="flex flex-col gap-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-black uppercase tracking-wider font-mono text-black">
+                    Return Basis & Target Gain
+                  </label>
+                  <div className="flex items-center border border-black bg-white shadow-[1px_1px_0px_0px_#000000] overflow-hidden">
+                    {(['daily', 'weekly', 'monthly', 'yearly'] as RatePeriod[]).map((p) => (
+                      <button
+                        key={p}
+                        type="button"
+                        onClick={() => handleRatePeriodChange(p)}
+                        className={`px-2 py-0.5 font-mono text-[10px] font-black uppercase transition-all cursor-pointer ${
+                          ratePeriod === p
+                            ? 'bg-[#FFE81D] text-black font-black'
+                            : 'bg-white text-gray-600 hover:bg-gray-100'
+                        }`}
+                      >
+                        {p === 'yearly' ? 'Annual' : p}
+                      </button>
+                    ))}
+                  </div>
+                </div>
 
-                <BrutalSelect
-                  label="Compounding Frequency"
-                  options={Object.entries(FREQUENCY_MAP).map(([key, item]) => ({
-                    label: item.label,
-                    value: key,
-                  }))}
-                  value={compFrequency}
-                  onChange={(e) => setCompFrequency(e.target.value as CompoundingFrequency)}
-                />
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <BrutalInput
+                      label={`${ratePeriod === 'yearly' ? 'Annual' : ratePeriod.charAt(0).toUpperCase() + ratePeriod.slice(1)} Gain (%)`}
+                      type="number"
+                      step={ratePeriod === 'daily' ? '0.01' : ratePeriod === 'weekly' ? '0.05' : '0.1'}
+                      min="0.01"
+                      max="10000"
+                      value={rateInput}
+                      onChange={(e) => setRateInput(e.target.value)}
+                      prefix="%"
+                    />
+                    <div className="text-[10px] font-mono font-bold text-gray-600 mt-1">
+                      {ratePeriod === 'yearly'
+                        ? `Equivalent: ~${((Math.pow(1 + parsedRate, 1 / 12) - 1) * 100).toFixed(2)}% / mo`
+                        : `Annualized: +${formatPercent(annualizedAPY)} APY`}
+                    </div>
+                  </div>
+
+                  <BrutalSelect
+                    label="Compounding Schedule"
+                    options={Object.entries(FREQUENCY_MAP).map(([key, item]) => ({
+                      label: item.label,
+                      value: key,
+                    }))}
+                    value={compFrequency}
+                    onChange={(e) => setCompFrequency(e.target.value as CompoundingFrequency)}
+                  />
+                </div>
               </div>
 
               {/* Recurring Additions */}
               <div className="grid grid-cols-2 gap-3">
                 <BrutalInput
                   label="Recurring Contribution"
-                  prefix="$"
+                  prefix={currency === 'IDR' ? 'Rp' : '$'}
                   type="number"
-                  step="50"
+                  step={currency === 'IDR' ? '100000' : '50'}
                   value={contributionAmount}
                   onChange={(e) => setContributionAmount(e.target.value)}
                 />
@@ -373,8 +452,7 @@ export function CompoundingCalculator({
               {/* Volatility Drift Band Toggle */}
               <div className="border-2 border-black p-3 bg-[#FFFDF8] flex flex-col gap-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-mono font-bold uppercase text-black flex items-center gap-1.5">
-                    <Sparkles className="w-3.5 h-3.5 text-orange-500" />
+                  <span className="text-xs font-mono font-bold uppercase text-black">
                     Market Volatility Bands
                   </span>
                   <input
@@ -417,7 +495,7 @@ export function CompoundingCalculator({
                   icon={<BookmarkCheck className="w-4 h-4" />}
                   onClick={handleSave}
                 >
-                  {savedSuccess ? '✅ Scenario Saved!' : 'Save Scenario Blueprint'}
+                  {savedSuccess ? 'Scenario Saved' : 'Save Scenario Blueprint'}
                 </BrutalButton>
               </div>
             </div>
@@ -462,7 +540,7 @@ export function CompoundingCalculator({
         {/* Right Column: Compounding Growth Curve (7 Cols) */}
         <div className="lg:col-span-7 flex flex-col gap-4">
           <BrutalCard
-            title={`Equity Compounding Trajectory (${horizonYears} Yrs @ ${annualRate}% APY)`}
+            title={`Compounding Trajectory (${horizonYears} Yrs @ ${rateInput}% ${ratePeriod === 'yearly' ? 'Annual' : ratePeriod.charAt(0).toUpperCase() + ratePeriod.slice(1)} / ${annualizedAPY >= 1000 ? (annualizedAPY / 1000).toFixed(1) + 'k' : annualizedAPY.toFixed(1)}% APY)`}
             badge="Trajectory"
             badgeColor="green"
             headerColor="bg-[#46E88E]"
@@ -497,7 +575,7 @@ export function CompoundingCalculator({
                       return (
                         <div className="bg-white border-2 border-black p-3 shadow-[4px_4px_0px_0px_#000000] font-mono text-xs">
                           <div className="font-black text-black border-b border-black pb-1 mb-2">
-                            ⏱️ {label}
+                            {label}
                           </div>
                           {payload.map((p) => (
                             <div key={p.name} className="flex justify-between gap-4 py-0.5">
@@ -578,7 +656,7 @@ export function CompoundingCalculator({
           {/* Year-by-Year Milestone Table Preview */}
           <div className="bg-white border-[3px] border-black shadow-[4px_4px_0px_0px_#000000] p-4">
             <h4 className="font-mono font-black text-xs uppercase tracking-wider text-black border-b-2 border-black pb-2 mb-3">
-              📅 Annual Compounding Progression Milestone Table
+              Annual Compounding Progression
             </h4>
             <div className="overflow-x-auto max-h-48 overflow-y-auto">
               <table className="w-full text-left font-mono text-xs">
